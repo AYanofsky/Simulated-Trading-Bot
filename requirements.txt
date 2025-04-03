@@ -1,3 +1,4 @@
-# python requirements.txt
 pandas
 yfinance
+io
+requests
