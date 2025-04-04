@@ -13,13 +13,13 @@ async def process_data(data_queue):
         
         # run the breakout detection and strategy execution
         breakout_up, breakout_down, processed_data = detect_breakouts(data)
-        
         if breakout_up:
             execute_strategy(ticker, processed_data)
         elif breakout_down:
             execute_strategy(ticker, processed_data)
 
-        data_queue.task_done()  # Mark the task as done
+        # mark task as complete
+        data_queue.task_done()
 
 
 # function to detect breakouts based on historical data
@@ -69,14 +69,14 @@ def execute_strategy(ticker, data):
     
     # simulating breaking out to execute a trade
     if breakout_up:
-        print(f"Breakout detected for {ticker}: Buying at {current_price}")
+        print(f"Breakout detected for {ticker}: Buying at ${current_price:,.2f}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
-        print(f"Stop-loss: {stop_loss}, Take-profit: {take_profit}")
+        print(f"Stop-loss: ${stop_loss:,.2f}, Take-profit: ${take_profit:,.2f}")
         
     elif breakout_down:
-        print(f"Breakout detected for {ticker}: Selling at {current_price}")
+        print(f"Breakout detected for {ticker}: Selling at ${current_price:,.2f}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
-        print(f"Stop-loss: {stop_loss}, Take-profit: {take_profit}")
+        print(f"Stop-loss: ${stop_loss:,.2f}, Take-profit: ${take_profit:,.2f}")
 
     else:
         print(f"No breakout detected for {ticker}.")
@@ -85,6 +85,7 @@ def execute_strategy(ticker, data):
 def execute_batch_strategy(tickers, data_dict):
     for ticker in tickers:
         if ticker in data_dict:
+            #print(f"Executing trade strategy for {ticker}.")
             execute_strategy(ticker, data_dict[ticker])
         else:
-            print(f"No data available for {ticker}.")
+            #print(f"No data available for {ticker}.")
