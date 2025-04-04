@@ -25,8 +25,8 @@ async def process_data(data_queue):
 def detect_breakouts(data):
 
     # calculate moving average and standard deviation to handle volatility
-    data['Moving_Avg'] = data['Close'].rolling(window=20).mean()
-    data['Std_Dev'] = data['Close'].rolling(window=20).std()
+    data.loc[:,'Moving_Avg'] = data['Close'].rolling(window=20).mean()
+    data.loc[:,'Std_Dev'] = data['Close'].rolling(window=20).std()
 
     # define breakout levels
     breakout_threshold = 1.05
@@ -65,8 +65,31 @@ def execute_strategy(ticker, data):
     # strategy will be triggered if a breakout is occurring
     current_price = data['Close'].iloc[-1]
     breakout_up, breakout_down, processed_data = detect_breakouts(data)
-    
-    # simulating breaking out to execute a trade
+
+    if ticker in open_positions:
+        for position in open_positions[ticker]:
+            # check if stop-loss or take-profit matches current price
+            stop_loss, take_profit = position['stop_loss'], position['take_profit']
+            if (position['position'] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
+                (position['position'] == "SHORT" and (current_price >= stop_loss or current_price <= take_profit)):
+                # exit position if stop-loss or take-profit matches current price
+                print(f"[{ticker:^4}] Exiting position at ${current_price:,.6f} due to stop-loss/take-profit hit.")
+                position["exit"] = current_price
+                # generate exit signal
+                trade_signal = {
+                    "ticker": ticker,
+                    "position": "EXIT",
+                    "entry": position["entry"],
+                    "exit": current_price,
+                    "stop_loss": stop_loss,
+                    "take_profit": take_profit,
+                    "timestamp": data.index[-1]
+                }
+                # remove position from open positions
+                open_positions[ticker].remove(position)
+                return trade_signal
+
+    # if we're breaking up, buy long, if we're breakking down, sell short. simple.
     if breakout_up:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
         print(f"[{ticker:^4}] 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
@@ -75,10 +98,13 @@ def execute_strategy(ticker, data):
         position = {
             "position": "LONG",
             "entry": current_price,
+            "exit": 0,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "timestamp": data.index[-1]
         }
+
+        return position
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it
         if ticker not in open_positions:
@@ -93,10 +119,13 @@ def execute_strategy(ticker, data):
         position = {
             "position": "SHORT",
             "entry": current_price,
+            "exit": 0,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "timestamp": data.index[-1]
         }
+
+        return position
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it
         if ticker not in open_positions:
@@ -104,7 +133,7 @@ def execute_strategy(ticker, data):
         open_positions[ticker].append(position)
 
     else:
-        print(f"No breakout detected for {ticker}.")
+        print(f"No breakout detected for {ticker}.\n")
 
 
 # function to execute strategy for multiple tickets using data generated in the data-collection step

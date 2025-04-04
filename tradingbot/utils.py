@@ -16,29 +16,29 @@ def get_tickers():
     filename = "tradingbot-tickers-" + today.isoformat() + ".txt"
 
     # if file doesn't exist, download and save it
-    if os.path.exists(filename) is not True:
-        print("Downloading tickers list.")
-        # link to github raw file from @rreichel3's repository: https://github.com/rreichel3/US-Stock-Symbols
-        url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
-
-        response = requests.get(url)
-
-        if response.status_code != 200:
-            print("Failed to download tickers list.")
-            return []
-
-        lines = response.text.split()
-
-        with open(filename, 'w') as file:
-            for line in lines:
-                file.write(line + '\n')
-
-        print("Tickers list written to disk.")
-
-    else:
-        print("Tickers list found on disk.")
-        with open(filename, 'r') as file:
-            lines = file.readlines()
+#    if os.path.exists(filename) is not True:
+#        print("Downloading tickers list.")
+#        # link to github raw file from @rreichel3's repository: https://github.com/rreichel3/US-Stock-Symbols
+#        url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
+#
+#        response = requests.get(url)
+#
+#        if response.status_code != 200:
+#            print("Failed to download tickers list.")
+#            return []
+#
+#        lines = response.text.split()
+#
+#        with open(filename, 'w') as file:
+#            for line in lines:
+#                file.write(line + '\n')
+#
+#        print("Tickers list written to disk.")
+#
+#    else:
+    print("Tickers list found on disk.")
+    with open(filename, 'r') as file:
+        lines = file.readlines()
 
     return [line.strip() for line in lines]
 
