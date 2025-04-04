@@ -1,37 +1,54 @@
 #! /bin/bash/env python
 
-import concurrent.futures
-import yfinance as yf
-import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tradingbot.utils import get_history, get_opening_cap, get_latest_cap
 
 # function to resolve a batch of tickers
 def resolve_batch(tickers):
-    tickers = tickers.tolist()
-    stocks = yf.Tickers(tickers)
     
-    # get history, open market cap, and latest market cap
-    histories = {ticker: get_history(ticker, stocks) for ticker in tickers}
-    opening_caps = {ticker: get_opening_cap(ticker) for ticker in tickers}
-    latest_caps = {ticker: get_latest_cap(ticker) for ticker in tickers}
+    histories = {}
+    opening_caps = {}
+    latest_caps = {}
+
+    # get_history will have its own exception handling
+    histories = get_history(ticker)
+
+
+    for ticker in tickers:
+
+        try:
+            opening_caps[ticker] = get_opening_cap(ticker)
+        except Exception as ex:
+            print(f"Error fetching opening market cap for {ticker}: {ex}")
+            opening_caps[ticker] = None
+
+        try:
+            latest_caps[ticker] = get_latest_cap(ticker)
+        except Exception as ex:
+            print(f"Error fetching latest market cap for {ticker}: {ex}")
+            latest_caps[ticker] = None
 
     return histories, opening_caps, latest_caps
 
 # function to split tickers into batches and process them in parallel
 def resolve_in_batches(tickers, batch_size=20, max_workers=5):
-    batches = np.array_split(tickers, np.ceil(len(tickers)/batch_size))
-    
+
     results = []
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures_to_batch = {executor.submit(resolve_batch, batch): batch for batch in batches}
+    # create batches of tickets to resolve
+    batches = [tickers[i:i + batch_size] for i in range(0,len(tickers), batch_size)]
 
-        for future in concurrent.futures.as_completed(futures_to_batch):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+
+        # map each batch to a thread
+        futures = {executor.submit(resolve_batch, batch): batch for batch in batches}
+
+        # collect results as they complete. a lot of the exception handling will occur here. it's gonna get messy.
+        for future in as_completed(futures):
             try:
-                results.append(future.result())
+                batch_result = future.result()
+                results.append(batch_result)
             except Exception as ex:
-                print(f"Batch failed with error {ex}")
-                import traceback
-                traceback.print_exc()
+                print(f"Error processing batch: {ex}")
 
     return results
