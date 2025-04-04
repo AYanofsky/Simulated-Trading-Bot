@@ -12,7 +12,7 @@ async def process_data(data_queue):
         print(f"Processing data for {ticker}...")
         
         # run the breakout detection and strategy execution
-        breakout_up, breakout_down, processed_data = detect_breakout(data)
+        breakout_up, breakout_down, processed_data = detect_breakouts(data)
         
         if breakout_up:
             execute_strategy(ticker, processed_data)
