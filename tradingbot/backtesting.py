@@ -28,6 +28,7 @@ def backtest_strategy(ticker, period="1y", interval="1h", breakout_up_threshold=
         for position in positions:
             if position["exit"] is None:
                 position["exit"] = data["Close"].iloc[-1]
+                position["position"]
 
     # save trade signals to CSV
     save_signals_to_csv(trades, f"backtests/signals/{ticker}_signals_results.csv")

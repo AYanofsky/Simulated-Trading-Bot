@@ -8,12 +8,12 @@ trades = {}
 # function to detect breakouts based on historical data
 def detect_breakouts(data,breakout_up_threshold=1.02, breakout_down_threshold=0.98):
     # Calculate moving average and standard deviation
-    data['Moving_Avg'] = data['Close'].rolling(window=20).mean()
-    data['Std_Dev'] = data['Close'].rolling(window=20).std()
+    data["Moving_Avg"] = data["Close"].rolling(window=20).mean()
+    data["Std_Dev"] = data["Close"].rolling(window=20).std()
 
     # Current price and moving average
-    current_price = data['Close'].iloc[-1]
-    moving_avg = data['Moving_Avg'].iloc[-1]
+    current_price = data["Close"].iloc[-1]
+    moving_avg = data["Moving_Avg"].iloc[-1]
 
     breakout_up = current_price > moving_avg * breakout_up_threshold
     breakout_down = current_price < moving_avg * breakout_down_threshold
@@ -35,16 +35,16 @@ def stop_loss_take_profit(entry_price, breakout_up,  stop_loss_percent=0.04, tak
 # function to facilitate strategy execution
 def execute_strategy(ticker, data, breakout_up_threshold=1.02, breakout_down_threshold=0.98, 
                      stop_loss_percent=0.04, take_profit_percent=0.15):
-    current_price = data['Close'].iloc[-1]
+    current_price = data["Close"].iloc[-1]
     breakout_up, breakout_down = detect_breakouts(data, breakout_up_threshold, breakout_down_threshold)
 
     # check for open positions and manage stop-loss, take-profit, and trailing adjustments
     if ticker in trades:
         for position in trades[ticker]:
-            stop_loss, take_profit = position['stop_loss'], position['take_profit']
-            if (position['position'] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
-                (position['position'] == "SHORT" and (current_price >= stop_loss or current_price <= take_profit)):
-                print(f"[{ticker}] Exiting {position['position']} position at delta of {(current_price / position['entry']):.2f}x due to stop-loss/take-profit hit.")
+            stop_loss, take_profit = position["stop_loss"], position["take_profit"]
+            if (position["position"] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
+                (position["position"] == "SHORT" and (current_price >= stop_loss or current_price <= take_profit)):
+                print(f"[{ticker}] Exiting {position["position"]} position at delta of {(current_price / position["entry"]):.2f}x due to stop-loss/take-profit hit.")
                 position["position"] = "EXIT"
                 position["exit"] = current_price
 

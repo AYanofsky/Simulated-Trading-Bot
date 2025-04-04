@@ -15,13 +15,13 @@ def get_tickers():
         url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
         response = requests.get(url)
         if response.status_code == 200:
-            with open(filename, 'w') as file:
+            with open(filename, "w") as file:
                 file.writelines(response.text.splitlines())
         else:
             print("Failed to download tickers.")
             return []
 
-    with open(filename, 'r') as file:
+    with open(filename, "r") as file:
         return [line.strip() for line in file]
 
 # function to save trade signals to CSV for backtesting
