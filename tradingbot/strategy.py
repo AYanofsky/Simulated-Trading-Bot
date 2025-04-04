@@ -47,8 +47,8 @@ def detect_breakouts(data):
 def stop_loss_take_profit(entry_price,breakout_up=True): # breakout set to true for testing purposes
 
     # define stop-loss and take-profit margins
-    stop_loss_percent = 0.05
-    take_profit_percent = 0.10
+    stop_loss_percent = 0.03
+    take_profit_percent = 0.15
 
     if breakout_up:
         stop_loss = entry_price * (1 - stop_loss_percent)
