@@ -5,7 +5,6 @@ import pandas as pd
 import yfinance as yf
 import requests
 import datetime
-import concurrent.futures
 
 # function to fetch data from repo
 def get_tickers():
@@ -44,17 +43,64 @@ def get_tickers():
 
 # function to get the day-to-day data of a single ticker
 def get_opening_cap(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        history = stock.history(period="1d",interval="1m")
+
+        # opening price of most recent trading day
+        opening_price = history["Open"].iloc[0]
+
+        # shares owned by investors
+        shares_outstanding = stock.info.get("sharesOutstanding", None)
+
+        if opening_price is None or shares_outstanding is None:
+            raise ValueError(f"Missing data for {ticker}")
+        
+    except Exception as ex:
+        print(f"Error fetching opening cap for {ticker}: {ex}")
+        return None
+
+    opening_cap = opening_price * shares_outstanding
     return opening_cap
 
 
 # function to get the current market cap of a single ticker
 def get_latest_cap(ticker):
-    return latest_cap
+    try:
+        stock = yf.Ticker(ticker)
+        
+        # current market cap of the stock
+        latest_cap = stock.info.get('marketCap', None)
+        
+        if latest_cap is None:
+            raise ValueError(f"Missing market cap data for {ticker}")
+        
+        return latest_cap
 
+    except Exception as ex:
+        print(f"Error fetching latest cap for {ticker}: {ex}")
+        return None
 
 # function to get the history for a single ticker
 def get_history(tickers):
-    return history
+
+    histories = {}
+
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            history = stock.history(period="1d", interval="1m")
+
+            if history.empty:
+                raise ValueError (f"No historical data returned for {ticker}")
+
+            histories[ticker] = history
+
+        except Exception as ex:
+            print(f"Error fetching history for ticker {ticker}: {ex}")
+            continue
+
+    return histories
 
 
 

@@ -10,23 +10,25 @@ def resolve_batch(tickers):
     opening_caps = {}
     latest_caps = {}
 
-    # get_history will have its own exception handling
-    histories = get_history(ticker)
+    
+    histories = get_history(tickers)
 
+    tickers = histories.keys()
 
     for ticker in tickers:
 
+        # this is disgusting, but this way we skip latest_caps entirely if opening_caps fails
         try:
             opening_caps[ticker] = get_opening_cap(ticker)
+
+            try:
+                latest_caps[ticker] = get_latest_cap(ticker)
+
+            except Exception as ex:
+                print(f"Error fetching latest market cap for {ticker}: {ex}")
+
         except Exception as ex:
             print(f"Error fetching opening market cap for {ticker}: {ex}")
-            opening_caps[ticker] = None
-
-        try:
-            latest_caps[ticker] = get_latest_cap(ticker)
-        except Exception as ex:
-            print(f"Error fetching latest market cap for {ticker}: {ex}")
-            latest_caps[ticker] = None
 
     return histories, opening_caps, latest_caps
 
