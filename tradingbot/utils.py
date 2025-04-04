@@ -5,18 +5,21 @@ import pandas as pd
 import yfinance as yf
 import requests
 import datetime
+import concurrent.futures
 
 # function to fetch data from repo
 def get_tickers():
 
+    # get today's date and create a text file containing tickers
     today = datetime.date.today()
-    filename = today.ctime().replace(" ", "_") + ".txt"
+    filename = "tradingbot-tickers-" + today.isoformat() + ".txt"
 
     # if file doesn't exist, download and save it
     if os.path.exists(filename) is not True:
+        print("Downloading tickers list.")
         # link to github raw file from @rreichel3's repository: https://github.com/rreichel3/US-Stock-Symbols
         url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
-        
+
         response = requests.get(url)
 
         if response.status_code != 200:
@@ -24,32 +27,47 @@ def get_tickers():
             return []
 
         lines = response.text.split()
-        
+
         with open(filename,'w') as file:
             for line in lines:
                 file.write(line)
                 file.write("\n")
             file.close()
+
+        print("Tickers list written to disk.")
+
+    #if file exists, read it
     else:
-        # if file exists, read it
+        print("Tickers list found on disk.")
         with open(filename, 'r') as file:
             lines = file.readlines()
-            lines = lines.split()
 
     return lines
 
-# function to get a list of stocks' history over a defined time period
-def get_history(stocks):
 
-    data = stocks.history(period="1d",interval="1m")
+# function to get a list of stocks' history over a defined time period
+def get_info(stocks):
+
+    print("Getting getting info for tickers...")
+
+    data = {}
+
+    # multithreading!
+    with concurrent.futures.ThreadPoolExecutor(max_workers = 9) as executor:
+        future_history = {executor.submit(get_history,stocks): stock for stock in stocks}
+        
+
+
 
     return data
+
 
 # function to get the day-to-day data of a list of stocks
 def get_opening_cap(tickers):
 
     # convert list of tickers to a list of stocks
     stocks = yf.Tickers(tickers)
+
 
     # get history from list of stocks
     data = get_history(stocks)
@@ -64,7 +82,7 @@ def get_opening_cap(tickers):
         # get number of investor-held shares
         stock = stocks.ticker[ticker]
         investor_held_shares = stock.info.get("sharesOutstanding",None)
-        
+
         # ensure that the stock has information available
         if opening_price is None or investor_held_shares is None:
             print(f"Couldn't find opening data for {ticker}.")
@@ -72,13 +90,19 @@ def get_opening_cap(tickers):
         else:
             opening_caps[ticker] = opening_price * investor_held_shares
 
-    fake_tuple = [opening_caps, data]
-    return fake_tuple
+
+    return opening_caps, data
 
 
 # function to return the latest market cap
-def get_latest_cap(fake_tuple):
-    
+def get_latest_cap(histories):
+
+    print("Entered latest")
+
+    tickers = {}
+
+    for ticker in histories:
+        tickers.append(ticker)
 
     stock = yf.Tickers(tickers)
 

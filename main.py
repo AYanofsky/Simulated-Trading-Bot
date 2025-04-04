@@ -5,10 +5,8 @@ from tradingbot.utils import get_opening_cap, get_latest_cap, market_cap_percent
 
 tickers = get_tickers()
 
-fake_tuple = get_opening_cap(tickers)
-opening = fake_tuple[0]
-fake_tuple = fake_tuple.remove(opening_caps)
-latest =  get_latest_cap(fake_tuple)
+opening, histories = get_opening_cap(tickers)
+latest =  get_latest_cap(histories)
 delta = market_cap_percentage_delta(opening,latests)
 
 """    if delta is not None:
