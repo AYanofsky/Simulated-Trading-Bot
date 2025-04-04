@@ -47,7 +47,8 @@ def get_tickers():
 def get_opening_cap(ticker):
     with lock:
         # get daily historical data
-        data = yf.Ticker(ticker).history(period="1d")
+        stock = yf.Ticker(ticker)
+        data = stock.history(period="1d")
         # get the opening price for the first day in history
         opening_cap = data['Open'].iloc[0]
     return opening_cap
@@ -57,15 +58,8 @@ def get_opening_cap(ticker):
 def get_latest_cap(ticker):
     with lock:
         # get the ticker info
-        data = yf.Ticker(ticker).info 
+        stock = yf.Ticker(ticker)
+        data = stock.info()
         # get the market cap from the info dictionary
         latest_cap = data.get('marketCap', None)
     return latest_cap
-
-
-# function to get the history for a single ticker
-def get_history(ticker):
-    with lock:
-        # Get 1 year of historical data
-        data = yf.Ticker(ticker).history(period="1y")
-    return data
