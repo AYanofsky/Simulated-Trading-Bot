@@ -30,7 +30,7 @@ async def collect_data(tickers, data_queue):
 
         packet = (ticker, data)
         await data_queue.put(packet)
-        print(f"Data for {ticker} arrived.")
+#        print(f"Data for {ticker} sent.")
 
 # handler function to begin data collection
 async def start_collecting(tickers, data_queue):

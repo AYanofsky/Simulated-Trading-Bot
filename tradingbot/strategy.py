@@ -6,7 +6,7 @@ async def process_data(data_queue):
     while True:
         # get data from the queue
         ticker, data = await data_queue.get()
-        print(f"Processing data for {ticker}...")
+#        print(f"Processing data for {ticker}...")
         
         # run the breakout detection and strategy execution
         breakout_up, breakout_down, processed_data = detect_breakouts(data)
@@ -27,7 +27,7 @@ def detect_breakouts(data):
     data['Std_Dev'] = data['Close'].rolling(window=20).std()
 
     # define breakout levels
-    breakout_threshold = 1.02
+    breakout_threshold = 1.05
     breakdown_threshold = 0.98
 
     # current price and moving average
@@ -66,17 +66,20 @@ def execute_strategy(ticker, data):
     
     # simulating breaking out to execute a trade
     if breakout_up:
-        print(f"Breakout detected for {ticker}: Buying at ${current_price:,.2f}")
+        print(f"[{ticker}] 📈 Breakout detected: BUY LONG at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
-        print(f"Stop-loss: ${stop_loss:,.2f}, Take-profit: ${take_profit:,.2f}")
-        
+        print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
+        return "LONG"
+
     elif breakout_down:
-        print(f"Breakout detected for {ticker}: Selling at ${current_price:,.2f}")
+        print(f"[{ticker}] 📉 Breakdown detected: SELL SHORT at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
-        print(f"Stop-loss: ${stop_loss:,.2f}, Take-profit: ${take_profit:,.2f}")
+        print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
+        return "SHORT"
 
     else:
         print(f"No breakout detected for {ticker}.")
+        return None
 
 # function to execute strategy for multiple tickets using data generated in the data-collection step
 def execute_batch_strategy(tickers, data_dict):
