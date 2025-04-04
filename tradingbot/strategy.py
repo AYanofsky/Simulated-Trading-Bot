@@ -69,13 +69,25 @@ def execute_strategy(ticker, data):
         print(f"[{ticker}] 📈 Breakout detected: BUY LONG at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
         print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
-        return "LONG"
+        return {
+            "ticker": ticker,
+            "signal": "LONG",
+            "entry_price": current_price,
+            "stop_loss": stop_loss,
+            "take_profit": take_profit
+        }
 
     elif breakout_down:
         print(f"[{ticker}] 📉 Breakdown detected: SELL SHORT at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
         print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
-        return "SHORT"
+        return {
+            "ticker": ticker,
+            "signal": "SHORT",
+            "entry_price": current_price,
+            "stop_loss": stop_loss,
+            "take_profit": take_profit
+        }
 
     else:
         print(f"No breakout detected for {ticker}.")
