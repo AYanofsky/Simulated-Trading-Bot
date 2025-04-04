@@ -58,11 +58,13 @@ def backtest_multiple_tickers(tickers, period="1y"):
 def calculate_metrics(trade_signals, data, ticker, period):
 
     total_return = 0  # total return across all trades
+    total_gains = 0   # total gains across all trades
+    total_losses = 0  # total losses across all trades
     wins = 0          # count of winning trades
     losses = 0        # count of losing trades
     max_drawdown = 0  # maximum drawdown observed
     peak_value = 0    # peak value during the backtest period
-    cumulative_return = 0  # var to track cumulative return over time
+    cumulative_return = []  # list to track cumulative return over time (it's total return's items, used to calculate mean)
 
     for signal in trade_signals:
         entry_price = signal["entry"]
@@ -71,15 +73,18 @@ def calculate_metrics(trade_signals, data, ticker, period):
         if exit_price is None:  # skip trades that do not have an exit price
             continue
 
+        
         # calculate the return for each trade
         trade_return = (exit_price - entry_price) / entry_price
         total_return += trade_return
 
-        # track if the trade was a win or loss
+        # add to gains/losses vars and track wins/losses
         if trade_return > 0:
             wins += 1
+            total_gains += trade_return
         else:
             losses += 1
+            total_losses += trade_return
 
         # calculate the maximum drawdown
         if exit_price < peak_value:
@@ -88,17 +93,19 @@ def calculate_metrics(trade_signals, data, ticker, period):
         else:
             peak_value = exit_price
 
-        cumulative_return += total_return
+        cumulative_return.append(total_return)
 
-    # calculate the Sharpe ratio for risk-adjusted return
+    # calculate the sharpe ratio for risk-adjusted return
     returns = pd.Series(cumulative_return)
     mean_return = returns.mean()
     std_dev = returns.std()
     sharpe_ratio = (mean_return - 0) / std_dev if std_dev != 0 else 0
 
-    # calculate the profit factor (ratio of gains to losses)
-    print(cumulative_return)
-    profit_factor = (cumulative_return / abs(cumulative_return))
+    if total_losses != 0:
+        profit_factor = total_gains / abs(total_losses)
+    else:
+        profit_factor = total_gains / 1
+
 
     # print the performance metrics
     print(f"\nMetrics for Ticker: {ticker} (Period: {period})")
