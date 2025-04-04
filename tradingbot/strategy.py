@@ -88,4 +88,5 @@ def execute_batch_strategy(tickers, data_dict):
             #print(f"Executing trade strategy for {ticker}.")
             execute_strategy(ticker, data_dict[ticker])
         else:
+            pass
             #print(f"No data available for {ticker}.")
