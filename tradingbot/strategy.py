@@ -66,7 +66,7 @@ def execute_strategy(ticker, data):
     current_price = data['Close'].iloc[-1]
     breakout_up, breakout_down, processed_data = detect_breakouts(data)
 
-    if ticker in open_positions:
+    if ticker in open_positions.keys():
         for position in open_positions[ticker]:
             # check if stop-loss or take-profit matches current price
             stop_loss, take_profit = position['stop_loss'], position['take_profit']
@@ -96,15 +96,14 @@ def execute_strategy(ticker, data):
         print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
         position = {
+            "ticker": ticker,
             "position": "LONG",
             "entry": current_price,
-            "exit": 0,
+            "exit": None,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "timestamp": data.index[-1]
         }
-
-        return position
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it
         if ticker not in open_positions:
@@ -117,15 +116,14 @@ def execute_strategy(ticker, data):
         print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
         position = {
+            "ticker": ticker,
             "position": "SHORT",
             "entry": current_price,
-            "exit": 0,
+            "exit": None,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "timestamp": data.index[-1]
         }
-
-        return position
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it
         if ticker not in open_positions:
@@ -143,7 +141,7 @@ def execute_batch_strategy(tickers, data_dict):
     for ticker in tickers:
         if ticker in data_dict:
             #print(f"Executing trade strategy for {ticker}.")
-            execute_strategy(ticker, data_dict[ticker])
+            trade_signals.append(execute_strategy(ticker, data_dict[ticker]))
         else:
             pass
             #print(f"No data available for {ticker}."))
