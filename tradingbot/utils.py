@@ -28,15 +28,12 @@ def get_tickers():
 
         lines = response.text.split()
 
-        with open(filename,'w') as file:
+        with open(filename, 'w') as file:
             for line in lines:
                 file.write(line)
                 file.write("\n")
-            file.close()
 
         print("Tickers list written to disk.")
-
-    #if file exists, read it
     else:
         print("Tickers list found on disk.")
         with open(filename, 'r') as file:
@@ -45,85 +42,86 @@ def get_tickers():
     return lines
 
 
-# function to get a list of stocks' history over a defined time period
-def get_info(stocks):
-
-    print("Getting getting info for tickers...")
-
-    data = {}
-
-    # multithreading!
-    with concurrent.futures.ThreadPoolExecutor(max_workers = 9) as executor:
-        future_history = {executor.submit(get_history,stocks): stock for stock in stocks}
-        
-
-
-
-    return data
-
-
 # function to get the day-to-day data of a list of stocks
 def get_opening_cap(tickers):
-
-    # convert list of tickers to a list of stocks
     stocks = yf.Tickers(tickers)
-
-
-    # get history from list of stocks
-    data = get_history(stocks)
-
+    
     opening_caps = {}
+    histories = {}
 
-    # get the opening prices for every ticker in the list of tickers
-    for ticker in tickers:
-        hist = data[ticker]
-        opening_price = hist.iloc[0]['Open']
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Get history data concurrently for each ticker
+        future_histories = {executor.submit(get_history, ticker, stocks): ticker for ticker in tickers}
+        for future in concurrent.futures.as_completed(future_histories):
+            ticker = future_histories[future]
+            hist = future.result()
+            if hist is not None:
+                histories[ticker] = hist
+                opening_price = hist.iloc[0]['Open']
+                
+                # get number of investor-held shares
+                stock = stocks.ticker[ticker]
+                investor_held_shares = stock.info.get("sharesOutstanding", None)
+                
+                if opening_price is None or investor_held_shares is None:
+                    print(f"Couldn't find opening data for {ticker}.")
+                else:
+                    opening_caps[ticker] = opening_price * investor_held_shares
 
-        # get number of investor-held shares
-        stock = stocks.ticker[ticker]
-        investor_held_shares = stock.info.get("sharesOutstanding",None)
-
-        # ensure that the stock has information available
-        if opening_price is None or investor_held_shares is None:
-            print(f"Couldn't find opening data for {ticker}.")
-            data.remove(ticker)
-        else:
-            opening_caps[ticker] = opening_price * investor_held_shares
+    return opening_caps, histories
 
 
-    return opening_caps, data
-
-
-# function to return the latest market cap
+# function to get the latest market cap for each ticker
 def get_latest_cap(histories):
+    latest_caps = {}
 
-    print("Entered latest")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Get latest market cap data concurrently
+        future_caps = {executor.submit(get_latest_cap_for_ticker, ticker, histories): ticker for ticker in histories}
+        
+        for future in concurrent.futures.as_completed(future_caps):
+            ticker = future_caps[future]
+            latest_cap = future.result()
+            if latest_cap is not None:
+                latest_caps[ticker] = latest_cap
 
-    tickers = {}
+    return latest_caps
 
-    for ticker in histories:
-        tickers.append(ticker)
 
-    stock = yf.Tickers(tickers)
-
-    # current near-real-time stock price
-    latest_price = stock.info.get("currentPrice", None)
-
-    # current near-real-time number of shares held by investors
-    investor_held_shares = stock.info.get("sharesOutstanding", None)
-
-    if latest_price is None or investor_held_shares is None:
-        print(f"Could not find near-real-time data for {ticker}")
+# function to get the latest market cap for a single ticker
+def get_latest_cap_for_ticker(ticker, histories):
+    try:
+        stock = yf.Ticker(ticker)
+        latest_price = stock.info.get("currentPrice", None)
+        investor_held_shares = stock.info.get("sharesOutstanding", None)
+        
+        if latest_price is None or investor_held_shares is None:
+            print(f"Skipping {ticker} due to missing data.")
+            return None
+        
+        return latest_price * investor_held_shares
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {e}")
         return None
 
 
-    return latest_price * investor_held_shares
+# function to get the history for a single ticker
+def get_history(ticker, stocks):
+    try:
+        hist = stocks.tickers[ticker].history(period='1d', interval="1m")
+        if hist.empty:
+            print(f"No data found for {ticker}")
+            return None
+        print(f"data found for {ticker}")
+        return hist
+    except Exception as e:
+        print(f"Error fetching history for {ticker}: {e}")
+        return None
+
 
 # function to calculate % delta in market cap from open to current day
-def market_cap_percentage_delta(open_cap,latest_cap):
+def market_cap_percentage_delta(open_cap, latest_cap):
     if open_cap is None or latest_cap is None:
         return None
-
-    # note that this returns DECIMAL percentage e.g. 100% is 1 and 50% is 0.5
-    delta = ((latest_cap - open_cap))/open_cap
+    delta = ((latest_cap - open_cap)) / open_cap
     return delta
