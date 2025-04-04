@@ -8,7 +8,7 @@ from tradingbot.utils import get_tickers
 # async function to get historical data for a ticker
 async def get_history(ticker):
     stock = yf.Ticker(ticker)
-    data = await asyncio.to_thread(stock.history,period="1mo")
+    data = await asyncio.to_thread(stock.history,period="30d")
     return ticker, data
 
 

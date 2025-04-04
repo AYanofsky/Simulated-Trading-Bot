@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import csv
 import yfinance as yf
 import requests
 import datetime
@@ -62,3 +63,19 @@ def get_latest_cap(ticker):
         # get the market cap from the info dictionary
         latest_cap = data.get('marketCap', None)
     return latest_cap
+
+# function to save signals received to file for backtesting
+def save_signals_to_csv(trade_signals, filename="backtest_results.csv"):
+    if not trade_signals:
+        print("No signals to save.")
+        return
+
+    # define headers for csv file
+    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp"]
+    
+    with open(filename, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=keys)
+        writer.writeheader()
+        writer.writerows(trade_signals)
+
+    print(f"Trade signals saved to {filename}")

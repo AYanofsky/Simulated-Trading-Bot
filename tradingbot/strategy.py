@@ -66,28 +66,36 @@ def execute_strategy(ticker, data):
     
     # simulating breaking out to execute a trade
     if breakout_up:
-        print(f"[{ticker}] 📈 Breakout detected: BUY LONG at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
-        print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
-        return {
+        print(f"[{ticker:^4}] 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
+        print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
+
+        signal = {
             "ticker": ticker,
-            "signal": "LONG",
-            "entry_price": current_price,
+            "position": "LONG",
+            "entry": current_price,
             "stop_loss": stop_loss,
-            "take_profit": take_profit
+            "take_profit": take_profit,
+            "timestamp": data.index[-1].isoformat()
         }
 
+        return signal
+
     elif breakout_down:
-        print(f"[{ticker}] 📉 Breakdown detected: SELL SHORT at {current_price}")
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
-        print(f"[{ticker}] Stop-loss: {stop_loss:.2f}, Take-profit: {take_profit:.2f}")
-        return {
+        print(f"[{ticker:^4}] 📉 Breakdown detected: SELL SHORT at ${current_price:,.6f}")
+        print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
+
+        signal = {
             "ticker": ticker,
-            "signal": "SHORT",
-            "entry_price": current_price,
+            "position": "SHORT",
+            "entry": current_price,
             "stop_loss": stop_loss,
-            "take_profit": take_profit
+            "take_profit": take_profit,
+            "timestamp": data.index[-1].isoformat()
         }
+
+        return signal
 
     else:
         print(f"No breakout detected for {ticker}.")
@@ -95,6 +103,8 @@ def execute_strategy(ticker, data):
 
 # function to execute strategy for multiple tickets using data generated in the data-collection step
 def execute_batch_strategy(tickers, data_dict):
+    trade_signals = []
+
     for ticker in tickers:
         if ticker in data_dict:
             #print(f"Executing trade strategy for {ticker}.")
