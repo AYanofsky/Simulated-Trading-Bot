@@ -33,7 +33,8 @@ def backtest_strategy(ticker, period="1y", interval="1h"):
                     "exit": position["exit"],
                     "stop_loss": position["stop_loss"],
                     "take_profit": position["take_profit"],
-                    "timestamp": data.index[-1]
+                    "timestamp": data.index[-1],
+                    "peak": position["peak"]
                 })
 
     # save the trade signals to a CSV file for review
@@ -48,7 +49,7 @@ def backtest_strategy(ticker, period="1y", interval="1h"):
 
 
 # function to run backtesting for multiple tickers
-def backtest_multiple_tickers(tickers, period="1y"):
+def backtest_multiple_tickers(tickers, period="2y"):
     for ticker in tickers:
         trade_signals, data = backtest_strategy(ticker, period)
         calculate_metrics(trade_signals, data, ticker, period)

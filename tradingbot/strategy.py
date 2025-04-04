@@ -29,8 +29,8 @@ def detect_breakouts(data):
     data.loc[:,'Std_Dev'] = data['Close'].rolling(window=20).std()
 
     # define breakout levels
-    breakout_threshold = 1.05
-    breakdown_threshold = 0.98
+    breakout_threshold = 1.02
+    breakdown_threshold = 0.99
 
     # current price and moving average
     current_price = data['Close'].iloc[-1]
@@ -44,11 +44,13 @@ def detect_breakouts(data):
 
 
 # function to determine stop-loss and take-profit logic
-def stop_loss_take_profit(entry_price,breakout_up=True): # breakout set to true for testing purposes
+def stop_loss_take_profit(entry_price,breakout_up):
 
     # define stop-loss and take-profit margins
-    stop_loss_percent = 0.03
+    stop_loss_percent = 0.04
     take_profit_percent = 0.15
+
+    # start implementation of trailing stop-loss to prevent a premature exit
 
     if breakout_up:
         stop_loss = entry_price * (1 - stop_loss_percent)
@@ -60,6 +62,22 @@ def stop_loss_take_profit(entry_price,breakout_up=True): # breakout set to true 
     return stop_loss, take_profit
 
 
+def trailing_adjust(position, current_price):
+
+    # define stop-loss and take-profit margins
+    stop_loss_percent = 0.04
+    take_profit_percent = 0.15    
+
+    if position['position'] == "LONG":
+        position['peak'] = max(position['peak'] or position['entry'], current_price)
+        position['stop_loss'] = position['peak'] * ( 1 - stop_loss_percent)
+        position['take_profit'] = position['take_profit'] * ( 1 + take_profit_percent)
+    else:
+        position['peak'] = min(position['peak'] or position['entry'], current_price)
+        position['stop_loss'] = position['peak'] * ( 1 + stop_loss_percent)
+        position['take_profit'] = position['take_profit'] * ( 1 - take_profit_percent)
+
+
 # function to execute the trading strategy
 def execute_strategy(ticker, data):
     # strategy will be triggered if a breakout is occurring
@@ -68,6 +86,10 @@ def execute_strategy(ticker, data):
 
     if ticker in open_positions.keys():
         for position in open_positions[ticker]:
+            
+            # check if the position has peaked, in which case, update the stop_loss
+            trailing_adjust(position, current_price)
+
             # check if stop-loss or take-profit matches current price
             stop_loss, take_profit = position['stop_loss'], position['take_profit']
             if (position['position'] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
@@ -84,13 +106,14 @@ def execute_strategy(ticker, data):
                     "exit": current_price,
                     "stop_loss": stop_loss,
                     "take_profit": take_profit,
-                    "timestamp": data.index[-1]
+                    "timestamp": data.index[-1],
+                    "peak": position["peak"]
                 }
                 # remove position from open positions
                 open_positions[ticker].remove(position)
                 return trade_signal
 
-    # if we're breaking up, buy long, if we're breakking down, sell short. simple.
+    # if we're breaking up, buy long, if we're breaking down, sell short. simple.
     if breakout_up:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
         print(f"[{ticker:^4}] {data.index[-1]} 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
@@ -103,7 +126,8 @@ def execute_strategy(ticker, data):
             "exit": None,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
-            "timestamp": data.index[-1]
+            "timestamp": data.index[-1],
+            "peak": current_price
         }
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it
@@ -123,7 +147,8 @@ def execute_strategy(ticker, data):
             "exit": None,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
-            "timestamp": data.index[-1]
+            "timestamp": data.index[-1],
+            "peak": current_price
         }
 
         # add ticker to open positions if it isn't in there, then add the position we just opened to it

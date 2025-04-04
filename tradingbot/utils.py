@@ -71,7 +71,7 @@ def save_signals_to_csv(trade_signals,filename="_backtest_results_"):
         return
 
     # define headers for csv file
-    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp"]
+    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp", "peak"]
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
