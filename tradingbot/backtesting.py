@@ -116,5 +116,3 @@ def calculate_metrics(trade_signals, data, ticker, period):
     print(f"Maximum Drawdown: {max_drawdown * 100:.2f}%")
     print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
     print(f"Profit Factor: {profit_factor:.2f}")
-
-    save_signals_to_csv(trade_signals, f"backtests/results/{ticker}_backtest_results_{period}.csv")
