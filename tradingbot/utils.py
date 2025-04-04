@@ -5,11 +5,13 @@ import pandas as pd
 import yfinance as yf
 import requests
 import datetime
+from threading import Lock
+
+lock = Lock()
 
 # function to fetch data from repo
 def get_tickers():
-
-    # get today's date and create a text file containing tickers
+   # get today's date and create a text file containing tickers
     today = datetime.date.today()
     filename = "tradingbot-tickers-" + today.isoformat() + ".txt"
 
@@ -43,70 +45,27 @@ def get_tickers():
 
 # function to get the day-to-day data of a single ticker
 def get_opening_cap(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        history = stock.history(period="1d",interval="1m")
-
-        # opening price of most recent trading day
-        opening_price = history["Open"].iloc[0]
-
-        # shares owned by investors
-        shares_outstanding = stock.info.get("sharesOutstanding", None)
-
-        if opening_price is None or shares_outstanding is None:
-            raise ValueError(f"Missing data for {ticker}")
-        
-    except Exception as ex:
-        print(f"Error fetching opening cap for {ticker}: {ex}")
-        return None
-
-    opening_cap = opening_price * shares_outstanding
+    with lock:
+        # get daily historical data
+        data = yf.Ticker(ticker).history(period="1d")
+        # get the opening price for the first day in history
+        opening_cap = data['Open'].iloc[0]
     return opening_cap
 
 
 # function to get the current market cap of a single ticker
 def get_latest_cap(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        
-        # current market cap of the stock
-        latest_cap = stock.info.get('marketCap', None)
-        
-        if latest_cap is None:
-            raise ValueError(f"Missing market cap data for {ticker}")
-        
-        return latest_cap
+    with lock:
+        # get the ticker info
+        data = yf.Ticker(ticker).info 
+        # get the market cap from the info dictionary
+        latest_cap = data.get('marketCap', None)
+    return latest_cap
 
-    except Exception as ex:
-        print(f"Error fetching latest cap for {ticker}: {ex}")
-        return None
 
 # function to get the history for a single ticker
-def get_history(tickers):
-
-    histories = {}
-
-    for ticker in tickers:
-        try:
-            stock = yf.Ticker(ticker)
-            history = stock.history(period="1d", interval="1m")
-
-            if history.empty:
-                raise ValueError (f"No historical data returned for {ticker}")
-
-            histories[ticker] = history
-
-        except Exception as ex:
-            print(f"Error fetching history for ticker {ticker}: {ex}")
-            continue
-
-    return histories
-
-
-
-# function to calculate % delta in market cap from open to current day
-def market_cap_percentage_delta(open_cap, latest_cap):
-    if open_cap is None or latest_cap is None:
-        return None
-    delta = ((latest_cap - open_cap)) / open_cap
-    return delta
+def get_history(ticker):
+    with lock:
+        # Get 1 year of historical data
+        data = yf.Ticker(ticker).history(period="1y")
+    return data
