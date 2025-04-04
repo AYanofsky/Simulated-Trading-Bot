@@ -65,14 +65,13 @@ def get_latest_cap(ticker):
     return latest_cap
 
 # function to save signals received to file for backtesting
-def save_signals_to_csv(trade_signals, filename="backtest_results.csv"):
+def save_signals_to_csv(trade_signals,filename="_backtest_results_"):
     if not trade_signals:
         print("No signals to save.")
         return
 
     # define headers for csv file
     keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp"]
-    
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()

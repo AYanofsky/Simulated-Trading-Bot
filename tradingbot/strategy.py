@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import yfinance as yf
 
+open_positions = {}
+
 # async function to decide what strategy to use
 async def process_data(data_queue):
     while True:
@@ -70,36 +72,40 @@ def execute_strategy(ticker, data):
         print(f"[{ticker:^4}] 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
         print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
-        signal = {
-            "ticker": ticker,
+        position = {
             "position": "LONG",
             "entry": current_price,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
-            "timestamp": data.index[-1].isoformat()
+            "timestamp": data.index[-1]
         }
 
-        return signal
+        # add ticker to open positions if it isn't in there, then add the position we just opened to it
+        if ticker not in open_positions:
+            open_positions[ticker] = []
+        open_positions[ticker].append(position)
 
     elif breakout_down:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
         print(f"[{ticker:^4}] 📉 Breakdown detected: SELL SHORT at ${current_price:,.6f}")
         print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
-        signal = {
-            "ticker": ticker,
+        position = {
             "position": "SHORT",
             "entry": current_price,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
-            "timestamp": data.index[-1].isoformat()
+            "timestamp": data.index[-1]
         }
 
-        return signal
+        # add ticker to open positions if it isn't in there, then add the position we just opened to it
+        if ticker not in open_positions:
+            open_positions[ticker] = []
+        open_positions[ticker].append(position)
 
     else:
         print(f"No breakout detected for {ticker}.")
-        return None
+
 
 # function to execute strategy for multiple tickets using data generated in the data-collection step
 def execute_batch_strategy(tickers, data_dict):
@@ -111,4 +117,4 @@ def execute_batch_strategy(tickers, data_dict):
             execute_strategy(ticker, data_dict[ticker])
         else:
             pass
-            #print(f"No data available for {ticker}.")
+            #print(f"No data available for {ticker}."))

@@ -2,7 +2,7 @@
 import pandas as pd
 import yfinance as yf
 from tradingbot.strategy import execute_strategy
-from tradingbot.utils import get_tickers
+from tradingbot.utils import get_tickers, save_signals_to_csv
 
 # function to run backtest on a given stock ticker
 def backtest_strategy(ticker, period="1y"):
@@ -23,7 +23,7 @@ def backtest_strategy(ticker, period="1y"):
     # save the trade signals to a CSV file for review
     if trade_signals:
         df_signals = pd.DataFrame(trade_signals)
-        df_signals.to_csv(f"backtests/{ticker}_backtest_signals_{period}.csv", index=False)
+        df_signals.to_csv(f"backtests/signals/{ticker}_backtest_signals_{period}.csv", index=False)
         print(f"Backtest complete for {ticker}. Signals saved to {ticker}_backtest_signals_{period}.csv")
     else:
         print(f"No signals generated for {ticker}.")
@@ -34,11 +34,12 @@ def backtest_strategy(ticker, period="1y"):
 # function to run backtesting for multiple tickers
 def backtest_multiple_tickers(tickers, period="1y"):
     for ticker in tickers:
-        calculate_metrics(backtest_strategy(ticker, period))
+        trade_signals, data = backtest_strategy(ticker, period)
+        calculate_metrics(trade_signals, data, ticker, period)
 
 
 # function to calculate performance metrics
-def calculate_metrics(trade_signals, data):
+def calculate_metrics(trade_signals, data, ticker, period):
     # calculate total return
     total_return = 0
     wins = 0
@@ -87,3 +88,5 @@ def calculate_metrics(trade_signals, data):
     print(f"Maximum Drawdown: {max_drawdown * 100:.2f}%")
     print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
     print(f"Profit Factor: {profit_factor:.2f}")
+
+    save_signals_to_csv("backtests/results/" + ticker + "_backtest_results_" + period + ".csv")
