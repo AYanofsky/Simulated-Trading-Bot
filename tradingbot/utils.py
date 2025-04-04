@@ -25,15 +25,19 @@ def get_tickers():
         return [line.strip() for line in file]
 
 # function to save trade signals to CSV for backtesting
-def save_signals_to_csv(trade_signals, filename="backtest_results.csv"):
-    if not trade_signals:
-        print("No trade signals to save.")
+def save_signals_to_csv(trades, filename="backtest_results.csv"):
+    flattened_trades = []
+    for ticker, records in trades.items():
+        flattened_trades.extend(records)
+
+    if not flattened_trades:
+        print("\n\n\nNo trades to save.\n\n\n")
         return
 
-    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp", "peak"]
+    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit"]
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
-        writer.writerows(trade_signals)
+        writer.writerows(flattened_trades)
 
     print(f"Trade signals saved to {filename}")

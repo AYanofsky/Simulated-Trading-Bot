@@ -7,7 +7,7 @@ from tradingbot.backtesting import backtest_multiple_tickers
 # main handler function
 def main(is_backtest=False, period="1y", interval="1h", breakout_up_threshold=1.02, breakout_down_threshold=0.98, 
          stop_loss_percent=0.04, take_profit_percent=0.15):
-    tickers = get_tickers()
+    tickers = ['NVDA']
 
     if is_backtest:
         print("Running backtest...")
