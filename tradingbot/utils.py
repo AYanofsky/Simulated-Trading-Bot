@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+
 import os
 import requests
+import csv
 import datetime
 
-# function to get list of tickers from a file
+# Function to get list of tickers from a file
 def get_tickers():
     today = datetime.date.today()
     filename = f"tickers-{today.isoformat()}.txt"
@@ -21,7 +24,7 @@ def get_tickers():
     with open(filename, 'r') as file:
         return [line.strip() for line in file]
 
-# function to save trade signals to CSV for backtesting
+# Save trade signals to CSV for backtesting
 def save_signals_to_csv(trade_signals, filename="backtest_results.csv"):
     if not trade_signals:
         print("No trade signals to save.")

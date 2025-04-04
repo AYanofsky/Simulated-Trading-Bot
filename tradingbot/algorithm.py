@@ -2,17 +2,17 @@
 
 import pandas as pd
 
-# Dfunction to detect breakouts based on historical data
+# Detect breakouts based on historical data
 def detect_breakouts(data):
-    # calculate moving average and standard deviation
+    # Calculate moving average and standard deviation
     data['Moving_Avg'] = data['Close'].rolling(window=20).mean()
     data['Std_Dev'] = data['Close'].rolling(window=20).std()
 
-    # define breakout levels
+    # Define breakout levels
     breakout_threshold = 1.02
     breakdown_threshold = 0.99
 
-    # current price and moving average
+    # Current price and moving average
     current_price = data['Close'].iloc[-1]
     moving_avg = data['Moving_Avg'].iloc[-1]
 
@@ -21,7 +21,7 @@ def detect_breakouts(data):
 
     return breakout_up, breakout_down
 
-# function to provide stop-loss and take-profit logic
+# Stop-loss and take-profit logic
 def stop_loss_take_profit(entry_price, breakout_up):
     stop_loss_percent = 0.04
     take_profit_percent = 0.15
@@ -35,12 +35,12 @@ def stop_loss_take_profit(entry_price, breakout_up):
 
     return stop_loss, take_profit
 
-# function for strategy execution
+# Strategy execution
 def execute_strategy(ticker, data, open_positions):
     current_price = data['Close'].iloc[-1]
     breakout_up, breakout_down = detect_breakouts(data)
 
-    # check for open positions to manage stop-loss and take-profit orders
+    # Check for open positions and manage stop-loss, take-profit, and trailing adjustments
     if ticker in open_positions:
         for position in open_positions[ticker]:
             stop_loss, take_profit = position['stop_loss'], position['take_profit']
@@ -50,7 +50,7 @@ def execute_strategy(ticker, data, open_positions):
                 position["exit"] = current_price
                 open_positions[ticker].remove(position)
 
-    # execute strategies if a breakout is occurring
+    # Execute new strategy based on breakout
     if breakout_up:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
         print(f"[{ticker}] Breakout detected: BUY LONG at {current_price}")
