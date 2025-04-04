@@ -5,10 +5,10 @@ import requests
 import csv
 import datetime
 
-# Function to get list of tickers from a file
+# function to get list of tickers from a file
 def get_tickers():
     today = datetime.date.today()
-    filename = f"tickers-{today.isoformat()}.txt"
+    filename = f"tradingbot-tickers-{today.isoformat()}.txt"
 
     if not os.path.exists(filename):
         print("Downloading tickers list...")
@@ -24,7 +24,7 @@ def get_tickers():
     with open(filename, 'r') as file:
         return [line.strip() for line in file]
 
-# Save trade signals to CSV for backtesting
+# function to save trade signals to CSV for backtesting
 def save_signals_to_csv(trade_signals, filename="backtest_results.csv"):
     if not trade_signals:
         print("No trade signals to save.")
