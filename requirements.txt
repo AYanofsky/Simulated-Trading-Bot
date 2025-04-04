@@ -1,4 +1,3 @@
-pandas
 yfinance
-io
 requests
+datetime

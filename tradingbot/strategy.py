@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 import yfinance as yf
-import pandas as pd
-import numpy as np
-from datetime import datetime
 
 # async function to decide what strategy to use
 async def process_data(data_queue):

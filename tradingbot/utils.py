@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import pandas as pd
 import yfinance as yf
 import requests
 import datetime
