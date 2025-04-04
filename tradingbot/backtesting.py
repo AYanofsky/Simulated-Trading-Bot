@@ -22,7 +22,7 @@ def backtest_strategy(ticker, period="1y", interval="1h"):
     # close any remaining open positions
     for positions in open_positions.values():
         for position in positions:
-            if position["exit"] is None:  # if no exit was registered
+            if position["exit"] is None:  # if no exit was registered, then exit
                 print(f"[{ticker:^4}] Exiting position at the end of backtest period due to timeout.")
                 print(f"Profit: ${(position['entry'] - data["Close"].iloc[-1]):,.6f} due to timeout.\n")
                 position["exit"] = data["Close"].iloc[-1]
