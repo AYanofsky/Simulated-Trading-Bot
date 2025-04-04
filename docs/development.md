@@ -8,3 +8,5 @@ April 4, 2025
 I was up very late last night trying to get this thing to spit numbers out at me.
 I fixed a bunch of bugs, and right now the bot is capable of detecting a breakout based on moving average and a static percentage. It can also detect breakdowns.
 Today I implemented a trailing stop-loss.
+
+I branched the repo to refactor the algorithm to focus primarily on backtesting and improving it.
