@@ -73,7 +73,8 @@ def execute_strategy(ticker, data):
             if (position['position'] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
                 (position['position'] == "SHORT" and (current_price >= stop_loss or current_price <= take_profit)):
                 # exit position if stop-loss or take-profit matches current price
-                print(f"[{ticker:^4}] Exiting position at ${current_price:,.6f} due to stop-loss/take-profit hit.")
+                print(f"[{ticker:^4}] {data.index[-1]} Exiting position at ${current_price:,.6f} due to stop-loss/take-profit hit.\n")
+                print(f"[{ticker:^4}] {data.index[-1]} Profit: ${(current_price - position['entry']):,.6f} due to stop-loss/take-profit hit.\n")
                 position["exit"] = current_price
                 # generate exit signal
                 trade_signal = {
@@ -92,8 +93,8 @@ def execute_strategy(ticker, data):
     # if we're breaking up, buy long, if we're breakking down, sell short. simple.
     if breakout_up:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True)
-        print(f"[{ticker:^4}] 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
-        print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
+        print(f"[{ticker:^4}] {data.index[-1]} 📈 Breakout detected: BUY LONG at ${current_price:,.6f}")
+        print(f"[{ticker:^4}] {data.index[-1]} Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
         position = {
             "ticker": ticker,
@@ -112,8 +113,8 @@ def execute_strategy(ticker, data):
 
     elif breakout_down:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False)
-        print(f"[{ticker:^4}] 📉 Breakdown detected: SELL SHORT at ${current_price:,.6f}")
-        print(f"[{ticker:^4}] Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
+        print(f"[{ticker:^4}] {data.index[-1]} 📉 Breakdown detected: SELL SHORT at ${current_price:,.6f}")
+        print(f"[{ticker:^4}] {data.index[-1]} Stop-loss: ${stop_loss:,.6f}, Take-profit: ${take_profit:,.6f}\n")
 
         position = {
             "ticker": ticker,
@@ -131,7 +132,7 @@ def execute_strategy(ticker, data):
         open_positions[ticker].append(position)
 
     else:
-        print(f"No breakout detected for {ticker}.\n")
+        print(f"[{ticker:^4}] {data.index[-1]} No breakout detected.\n")
 
 
 # function to execute strategy for multiple tickets using data generated in the data-collection step

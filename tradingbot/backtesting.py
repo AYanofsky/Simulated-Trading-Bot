@@ -5,10 +5,10 @@ from tradingbot.strategy import execute_strategy, open_positions
 from tradingbot.utils import get_tickers, save_signals_to_csv
 
 # function to run backtest on a given stock ticker
-def backtest_strategy(ticker, period="1y"):
+def backtest_strategy(ticker, period="1y", interval="1h"):
     # get historical data
     stock = yf.Ticker(ticker)
-    data = stock.history(period=period)
+    data = stock.history(period=period, interval="1h")
     
     trade_signals = []  
 
@@ -24,6 +24,7 @@ def backtest_strategy(ticker, period="1y"):
         for position in positions:
             if position["exit"] is None:  # if no exit was registered
                 print(f"[{ticker:^4}] Exiting position at the end of backtest period due to timeout.")
+                print(f"Profit: ${(position['entry'] - data["Close"].iloc[-1]):,.6f} due to timeout.\n")
                 position["exit"] = data["Close"].iloc[-1]
                 trade_signals.append({
                     "ticker": ticker,
@@ -39,9 +40,9 @@ def backtest_strategy(ticker, period="1y"):
     if trade_signals:
         df_signals = pd.DataFrame(trade_signals)
         df_signals.to_csv(f"backtests/signals/{ticker}_backtest_signals_{period}.csv", index=False)
-        print(f"Backtest complete for {ticker}. Signals saved to {ticker}_backtest_signals_{period}.csv")
+        print(f"[{ticker:^4}] Backtest complete. Signals saved to {ticker}_backtest_signals_{period}.csv")
     else:
-        print(f"No signals generated for {ticker}.")
+        print(f"[{ticker:^4}] No signals generated.")
     
     return trade_signals, data
 
@@ -61,49 +62,45 @@ def calculate_metrics(trade_signals, data, ticker, period):
     losses = 0        # count of losing trades
     max_drawdown = 0  # maximum drawdown observed
     peak_value = 0    # peak value during the backtest period
-    cumulative_return = []  # list to track cumulative return over time
+    cumulative_return = 0  # var to track cumulative return over time
 
     for signal in trade_signals:
         entry_price = signal["entry"]
-        exit_price = signal.get("exit")  # Safely get the exit price (might be None)
+        exit_price = signal.get("exit")  # safely get the exit price (might be None)
 
-        if exit_price is None:  # Skip trades that do not have an exit price
+        if exit_price is None:  # skip trades that do not have an exit price
             continue
 
-        # Calculate the return for each trade
+        # calculate the return for each trade
         trade_return = (exit_price - entry_price) / entry_price
         total_return += trade_return
 
-        # Track if the trade was a win or loss
+        # track if the trade was a win or loss
         if trade_return > 0:
             wins += 1
         else:
             losses += 1
 
-        # Calculate the maximum drawdown
+        # calculate the maximum drawdown
         if exit_price < peak_value:
             drawdown = (peak_value - exit_price) / peak_value
             max_drawdown = max(max_drawdown, drawdown)
         else:
             peak_value = exit_price
 
-        cumulative_return.append(total_return)
+        cumulative_return += total_return
 
-    # Avoid division by zero if there are no valid trades
-    if len(cumulative_return) > 0:
-        # Calculate the Sharpe ratio for risk-adjusted return
-        returns = pd.Series(cumulative_return)
-        mean_return = returns.mean()
-        std_dev = returns.std()
-        sharpe_ratio = (mean_return - 0) / std_dev if std_dev != 0 else 0
+    # calculate the Sharpe ratio for risk-adjusted return
+    returns = pd.Series(cumulative_return)
+    mean_return = returns.mean()
+    std_dev = returns.std()
+    sharpe_ratio = (mean_return - 0) / std_dev if std_dev != 0 else 0
 
-        # Calculate the profit factor (ratio of gains to losses)
-        profit_factor = sum(r for r in cumulative_return if r > 0) / abs(sum(r for r in cumulative_return if r < 0)) if sum(r for r in cumulative_return if r < 0) != 0 else 0
-    else:
-        sharpe_ratio = 0
-        profit_factor = 0
+    # calculate the profit factor (ratio of gains to losses)
+    print(cumulative_return)
+    profit_factor = (cumulative_return / abs(cumulative_return))
 
-    # Print the performance metrics
+    # print the performance metrics
     print(f"\nMetrics for Ticker: {ticker} (Period: {period})")
     print(f"Total Return: {total_return * 100:.2f}%")
     print(f"Winning Trades: {wins}")
