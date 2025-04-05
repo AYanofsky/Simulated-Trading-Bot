@@ -10,3 +10,19 @@ I fixed a bunch of bugs, and right now the bot is capable of detecting a breakou
 Today I implemented a trailing stop-loss.
 
 I branched the repo to refactor the algorithm to focus primarily on backtesting and improving it.
+
+I branched again. Time for theory.
+
+
+Economic Theory: Enough Time In The Market Will Let The Bot Time The Market
+1. Find and track stocks that are stable but undervalued and low price
+2. Watch these stocks. If they break out, proceed
+3. Hold if the position is good, flip and pivot to a short position
+4. Follow through and exit as needed. try to avoid holding a position for long amounts of time after we reach this state
+
+Ideas
+1. SQLite database. Pivot to DuckDB if I implement some sort of ML or if speed becomes an issue
+2a. Create a script to pre-load and pre-process OHLVC data (from yfinance, for now) into the DB using an API with data integrity validation
+2b. Create a script to act as an in-memory analysis engine which pulls from the DB, computes rolling indicators, scores each stock, and returns a time-series based DataFrame with analysis columns. Wrap Pandas DataFrames in a custom class with related methods for calculations?
+3. Create a script to wrap the algorithm and utilities in an easy-to-use API (one stock per thread, perhaps, done with multiprocessing parallelism)
+4. Create a script to handle backtesting and "live" trading via the above API
