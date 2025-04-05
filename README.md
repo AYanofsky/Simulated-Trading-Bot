@@ -6,4 +6,5 @@ Due to this project's nature I will likely not be deploying it to an environment
 I used @rreichel3's list of tickers to test this thing with a large data set. You can find it [here](https://github.com/rreichel3/US-Stock-Symbols).
 
 Currently, this bot is capable of detecting breakouts and suggesting take-profit and stop-loss orders.
-In simpler terms:
+
+See strategy-change branch for current theory and architecture.
