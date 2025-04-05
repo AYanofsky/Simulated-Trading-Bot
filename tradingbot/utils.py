@@ -1,80 +1,72 @@
 #!/usr/bin/env python
 
 import os
-import csv
-import yfinance as yf
 import requests
+import csv
 import datetime
-from threading import Lock
 
-lock = Lock()
-
-# function to fetch data from repo
+# function to get list of tickers from a file
 def get_tickers():
-   # get today's date and create a text file containing tickers
     today = datetime.date.today()
-    filename = "tradingbot-tickers-" + today.isoformat() + ".txt"
+    filename = f"tradingbot-tickers-{today.isoformat()}.txt"
 
-    # if file doesn't exist, download and save it
-#    if os.path.exists(filename) is not True:
-#        print("Downloading tickers list.")
-#        # link to github raw file from @rreichel3's repository: https://github.com/rreichel3/US-Stock-Symbols
-#        url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
-#
-#        response = requests.get(url)
-#
-#        if response.status_code != 200:
-#            print("Failed to download tickers list.")
-#            return []
-#
-#        lines = response.text.split()
-#
-#        with open(filename, 'w') as file:
-#            for line in lines:
-#                file.write(line + '\n')
-#
-#        print("Tickers list written to disk.")
-#
-#    else:
-    print("Tickers list found on disk.")
-    with open(filename, 'r') as file:
-        lines = file.readlines()
+    if not os.path.exists(filename):
+        print("Downloading tickers list...")
+        url = "https://github.com/rreichel3/US-Stock-Symbols/raw/refs/heads/main/nyse/nyse_tickers.txt"
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(filename, "w") as file:
+                file.writelines(response.text.splitlines())
+        else:
+            print("Failed to download tickers.")
+            return []
 
-    return [line.strip() for line in lines]
+    with open(filename, "r") as file:
+        return [line.strip() for line in file]
 
 
-# function to get the day-to-day data of a single ticker
-def get_opening_cap(ticker):
-    with lock:
-        # get daily historical data
-        stock = yf.Ticker(ticker)
-        data = stock.history(period="1d")
-        # get the opening price for the first day in history
-        opening_cap = data['Open'].iloc[0]
-    return opening_cap
+# function to flatten dict of dict of list
+def flatten(ddl):
+    flattened = []
+    for key, value in ddl.items():
+        flattened.extend(value)
+    return flattened
 
+# function to save trade signals to CSV for backtesting
+def save_signals_to_csv(trades, filename="backtest_results.csv"):
+    flattened_trades = flatten(trades)
 
-# function to get the current market cap of a single ticker
-def get_latest_cap(ticker):
-    with lock:
-        # get the ticker info
-        stock = yf.Ticker(ticker)
-        data = stock.info()
-        # get the market cap from the info dictionary
-        latest_cap = data.get('marketCap', None)
-    return latest_cap
-
-# function to save signals received to file for backtesting
-def save_signals_to_csv(trade_signals,filename="_backtest_results_"):
-    if not trade_signals:
-        print("No signals to save.")
+    if not flattened_trades:
+        print("\n\n\nNo trades to save.\n\n\n")
         return
 
-    # define headers for csv file
-    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit", "timestamp", "peak"]
+    keys = ["ticker", "position", "entry", "exit", "stop_loss", "take_profit"]
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
-        writer.writerows(trade_signals)
+        writer.writerows(flattened_trades)
 
-    print(f"Trade signals saved to {filename}")
+#    print(f"Trade signals saved to {filename}")
+
+# a function to calculate statistics
+def calculate_statistics(trades):
+
+    gross_profit = 0
+    gross_loss = 0
+
+    flattened_trades = flatten(trades)
+    for trade in flattened_trades:
+            if trade['exit'] - trade['entry'] > 0:
+                gross_profit += trade['exit'] - trade['entry']
+            else:
+                gross_loss += abs(trade['exit'] - trade['entry'])
+
+    if gross_loss == 0:
+        profit_factor = gross_profit
+    else:
+        profit_factor = gross_profit / gross_loss
+
+#    print(f"Gross Profit: ${gross_profit:.2f}")
+#    print(f"Gross Loss: ${gross_loss:.2f}")
+#    print(f"Profit Factor: {profit_factor:.2f}")
+    return profit_factor
