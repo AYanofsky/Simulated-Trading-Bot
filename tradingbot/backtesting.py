@@ -3,7 +3,7 @@
 import pandas as pd
 import yfinance as yf
 from tradingbot.algorithm import execute_strategy, trades
-from tradingbot.utils import save_signals_to_csv
+from tradingbot.utils import save_signals_to_csv, calculate_statistics
 
 # function to get historical data for backtesting
 def get_historical_data(ticker, period="1y", interval="1h"):
@@ -32,6 +32,7 @@ def backtest_strategy(ticker, period="1y", interval="1h", breakout_up_threshold=
 
     # save trade signals to CSV
     save_signals_to_csv(trades, f"backtests/signals/{ticker}_signals_results.csv")
+    calculate_statistics(trades)
 
 # function to iterate over every ticker and backtest it
 def backtest_multiple_tickers(tickers, period, interval, breakout_up_threshold, breakout_down_threshold, stop_loss_percent, take_profit_percent):

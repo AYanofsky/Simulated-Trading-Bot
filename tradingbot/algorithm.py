@@ -44,7 +44,7 @@ def execute_strategy(ticker, data, breakout_up_threshold=1.02, breakout_down_thr
             stop_loss, take_profit = position["stop_loss"], position["take_profit"]
             if (position["position"] == "LONG" and (current_price <= stop_loss or current_price >= take_profit)) or \
                 (position["position"] == "SHORT" and (current_price >= stop_loss or current_price <= take_profit)):
-                print(f"[{ticker}] Exiting {position["position"]} position at delta of {(current_price / position["entry"]):.2f}x due to stop-loss/take-profit hit.")
+#                print(f"[{ticker}] Exiting {position["position"]} position at delta of {(current_price / position["entry"]):.2f}x due to stop-loss/take-profit hit.")
                 position["position"] = "EXIT"
                 position["exit"] = current_price
 
@@ -52,7 +52,7 @@ def execute_strategy(ticker, data, breakout_up_threshold=1.02, breakout_down_thr
     if breakout_up:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=True, stop_loss_percent=stop_loss_percent, 
                                                        take_profit_percent=take_profit_percent)
-        print(f"[{ticker}] Breakout detected: BUY LONG at {current_price}")
+#        print(f"[{ticker}] Breakout detected: BUY LONG at {current_price}")
         position = {"ticker": ticker,
                     "position": "LONG",
                     "entry": current_price,
@@ -65,7 +65,7 @@ def execute_strategy(ticker, data, breakout_up_threshold=1.02, breakout_down_thr
     elif breakout_down:
         stop_loss, take_profit = stop_loss_take_profit(current_price, breakout_up=False, stop_loss_percent=stop_loss_percent, 
                                                        take_profit_percent=take_profit_percent)
-        print(f"[{ticker}] Breakout detected: SELL SHORT at {current_price}")
+#        print(f"[{ticker}] Breakout detected: SELL SHORT at {current_price}")
         position = {"ticker": ticker, 
                     "position": "SHORT", 
                     "entry": current_price, 

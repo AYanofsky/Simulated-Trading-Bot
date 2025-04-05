@@ -24,11 +24,17 @@ def get_tickers():
     with open(filename, "r") as file:
         return [line.strip() for line in file]
 
+
+# function to flatten dict of dict of list
+def flatten(ddl):
+    flattened = []
+    for key, value in ddl.items():
+        flattened.extend(value)
+    return flattened
+
 # function to save trade signals to CSV for backtesting
 def save_signals_to_csv(trades, filename="backtest_results.csv"):
-    flattened_trades = []
-    for ticker, records in trades.items():
-        flattened_trades.extend(records)
+    flattened_trades = flatten(trades)
 
     if not flattened_trades:
         print("\n\n\nNo trades to save.\n\n\n")
@@ -40,4 +46,27 @@ def save_signals_to_csv(trades, filename="backtest_results.csv"):
         writer.writeheader()
         writer.writerows(flattened_trades)
 
-    print(f"Trade signals saved to {filename}")
+#    print(f"Trade signals saved to {filename}")
+
+# a function to calculate statistics
+def calculate_statistics(trades):
+
+    gross_profit = 0
+    gross_loss = 0
+
+    flattened_trades = flatten(trades)
+    for trade in flattened_trades:
+            if trade['exit'] - trade['entry'] > 0:
+                gross_profit += trade['exit'] - trade['entry']
+            else:
+                gross_loss += abs(trade['exit'] - trade['entry'])
+
+    if gross_loss == 0:
+        profit_factor = gross_profit
+    else:
+        profit_factor = gross_profit / gross_loss
+
+#    print(f"Gross Profit: ${gross_profit:.2f}")
+#    print(f"Gross Loss: ${gross_loss:.2f}")
+#    print(f"Profit Factor: {profit_factor:.2f}")
+    return profit_factor

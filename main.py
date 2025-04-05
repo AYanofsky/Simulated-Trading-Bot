@@ -3,15 +3,19 @@
 import argparse
 from tradingbot.utils import get_tickers
 from tradingbot.backtesting import backtest_multiple_tickers
+from tradingbot.optimizer import start_optimizer
 
 # main handler function
-def main(is_backtest=False, period="1y", interval="1h", breakout_up_threshold=1.02, breakout_down_threshold=0.98, 
-         stop_loss_percent=0.04, take_profit_percent=0.15):
-    tickers = ["NVDA"]
+def main(is_backtest=False, is_optimize=False, period="1y", interval="1h", breakout_up_threshold=1.05, breakout_down_threshold=0.97, 
+         stop_loss_percent=0.05, take_profit_percent=0.2):
+    tickers = ["PFE"]
 
     if is_backtest:
         print("Running backtest...")
         backtest_multiple_tickers(tickers,period,interval,breakout_up_threshold,breakout_down_threshold,stop_loss_percent,take_profit_percent)
+    elif is_optimize:
+        print("Running optimization...")
+        start_optimizer(tickers)
     else:
         # implement "live" trading logic here
         pass
@@ -19,6 +23,7 @@ def main(is_backtest=False, period="1y", interval="1h", breakout_up_threshold=1.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trading Bot")
 
+    parser.add_argument("--optimize", action="store_true", help="run optimizations instead of live mode.")
     parser.add_argument("--backtest", action="store_true", help="run backtest instead of live mode.")
     parser.add_argument("--period", type=str, default="1y", help="historical data period for backtest (e.g., '1y', '6mo').")
     parser.add_argument("--interval", type=str, default="1h", help="interval for historical data (e.g., '1h', '1d').")
@@ -31,6 +36,7 @@ if __name__ == "__main__":
 
     main(
         is_backtest=args.backtest, 
+        is_optimize=args.optimize,
         period=args.period, 
         interval=args.interval,
         breakout_up_threshold=args.breakout_up, 
