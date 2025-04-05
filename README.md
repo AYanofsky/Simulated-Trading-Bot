@@ -45,3 +45,56 @@ Ideas
 2b. Create a script to act as an in-memory analysis engine which pulls from the DB, computes rolling indicators, scores each stock, and returns a time-series based DataFrame with analysis columns. Wrap Pandas DataFrames in a custom class with related methods for calculations?
 3. Create a script to wrap the algorithm and utilities in an easy-to-use API (one stock per thread, perhaps, done with multiprocessing parallelism)
 4. Create a script to handle backtesting and "live" trading via the above API
+
+
+### Optimization Methods
+The grand spitball.
+1. Speed up data retrieval and reduce or eliminate I/O bottlenecks
+- DuckDB is faster than SQLite
+- Compress OHLCV into .parquet format for storage on disk
+- Index data based on `ticker` and `date` to speed up lookups for individual queries
+- Split data into chunks (e.g. by year) for better in-memory handling
+
+2. Efficient data loading
+- Batch fetching (via yfinance or other api) while still maintaining a polite backoff timer
+- Caching libraries like `joblib` or SQLite's cache can help avoid downloads for stocks already in memory
+- Periodically update only most recent data (say the last 30d or so, or keep a record of the last time the data was updated) instead of re-fetching everything
+
+3. Efficient rolling calculations
+- Minimize computation time by using numpy or cython for large datasets instead of pandas' .rolling()
+- Precompute indicators during data loading to avoid recalculating them multiple times
+- Use parallel processing for multiple rolling windows as they are expensive to compute
+
+4. Indicator caching
+- Cache indicator values for stocks and store them in a seperate table in DB (e.g. `indicators` with precomputed `SMA`, `RSI` values, etc)
+- If the calculation is expensive (large rolling windows, custom indicators), store them and use them in the future
+- Use in-memory caching (`functools.lru_cache` maybe?) to reduce repeated calculations for small amounts
+
+5. Event detection
+- Only recompute signals when needed. Event-driven design is key (e.g. only calculate something when a stock crosses a threshold)
+- Optimize the signal threshold to avoid unecessary checks. Focus on stocks that meet specific criteria
+- Use a scoring model to rank stocks by metrics such as breakout *strength* to reduce the number of stocks that need to be processed concurrently
+
+6. Portfolio allocation
+- Use risk-adjusted metrics (e.g. Sharpe ratio) to decide how much capital to allocate to a stock (like allocating more capital to a riskier stock)
+- Use a Monte Carlo simulation to predict outcomes based on historical volatility (not really relevant, but possible)
+- Calculate correlations between stocks and avoid simultaneous exposure to highly correlated sources of risk (e.g. if the iron market is crashing, don't invest in steel)
+
+7. Position entry and exit
+- Use limit orders to minimize slippage
+- Optimize stop-loss and take-profit orders by backtesting different strategies (e.g. trailing stop, ATR, fixed percentage, etc)
+- Consider time decay. Don't hold for too long. Test different time limits to optimize maximum holding periods
+- Implement multi-threaded/processed trading to monitor multiple stocks or portfolios in parallel
+
+8. Backtesting
+- Use multi-processing to run backtests on multiple objects at once
+- Group stocks into batches to be tested
+- Precompute as much historical data as possible to avoid redundant calculations during backtesting
+
+9. Algorithm and model tuning
+- Use random search, not grid search, for hyperparameter optimization (for ML or rule-based thresholds)
+- Automate trading parameter optimization for fixed-parameter methods (take-profit percentage, stop-loss distance, etc)
+
+10. Scalability
+- Implement a distributed system (or a system that can be distributed), perhaps via docker containers or k8s to scale horizontally and process more at once
+- Cloud-based solution in future? Could open up some doors for asynchronous jobs and further distributed workloads
