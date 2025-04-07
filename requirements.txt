@@ -1,3 +1,6 @@
 yfinance
 sqlite3
 pandas
+datetime
+timedelta
+tqdm
