@@ -115,7 +115,10 @@ def dataloader(tickers):
             # insert data to sqlite
             insert_data(ticker, df)
 
-            print(f"[{ticker:<4}]: Loaded data.")
+            print(f"[{ticker:<4}]: Loaded data into SQLite.")
 
         except Exception as ex:
-            print(f"[{ticker:<4}]: Failed to load data. {ex}")
+            print(f"[{ticker:<4}]: Failed to load data into SQLite. {ex}")
+            return None
+            
+    return data
