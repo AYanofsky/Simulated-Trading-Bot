@@ -29,10 +29,10 @@ import yfinance as yf
 import sqlite3 as sq3
 import pandas as pd
 import os
+from preprocessing import preprocess_data
 
 # database path var
 DB_PATH = "databases/tradingbot.db"
-
 
 
 # gets yfinance data for a given list of tickers. returns multi-index dataframe
