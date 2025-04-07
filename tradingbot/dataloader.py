@@ -47,7 +47,7 @@ def insert_data(ticker, df):
         # insert data into sql database
         cur.executemany("""
 
-        INSERT INTO dataloader (ticker, timestamp, open, high, low, close, volume)
+        INSERT INTO dataloader (Ticker, Timestamp, Open, High, Low, Close, Volume)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """, rows)
         con.commit()
@@ -103,7 +103,7 @@ def preprocessor(ticker, data, expected_timestamps):
 def dataloader(tickers, expected_timestamps):
     data = fetch_data(tickers)
 
-    with tqdm(total=len(tickers), desc="[SYSTEM]: Inserting data",unit="ticker") as pbar:
+    with tqdm(total=len(tickers), desc="[SYSTEM]: Inserting data",unit=" ticker") as pbar:
         # preprocess data for each ticker
         for ticker in tickers:
             # for every ticker's data in the list, run the preprocessor on it
@@ -145,8 +145,8 @@ def bootstrap_dataloader(tickers, start_date, end_date):
 
         for ticker in tickers:
             cur.execute("""
-            SELECT COUNT(DISTINCT timestamp) FROM dataloader
-            WHERE ticker = ? and timestamp between ? and ?;
+            SELECT COUNT(DISTINCT Timestamp) FROM dataloader
+            WHERE Ticker = ? and Timestamp between ? and ?;
             """, (ticker, start_date, end_date))
             count = cur.fetchone()[0]
             if count < len(expected_timestamps):
@@ -160,25 +160,23 @@ def bootstrap_dataloader(tickers, start_date, end_date):
         cur.execute("DROP TABLE IF EXISTS dataloader;")
         cur.execute("""
         CREATE TABLE dataloader (
-            ticker TEXT,
-            timestamp TEXT,
-            open REAL,
-            high REAL,
-            low REAL,
-            close REAL,
-            volume INTEGER
+            Ticker TEXT,
+            Timestamp TEXT,
+            Open REAL,
+            High REAL,
+            Low REAL,
+            Close REAL,
+            Volume INTEGER
         );
         """)
         con.commit()
-        con.close()
         # download, preprocess, insert
         data = dataloader(tickers, expected_timestamps)
 
-    else:
-        print("[SYSTEM]: All data present. Reading from database.")
-        data = pd.read_sql_query("SELECT * FROM dataloader;", con, parse_dates=["timestamp"])
-        con.close()
-        data.set_index(['timestamp', 'ticker'], inplace=True)
-        data.sort_index(inplace=True)
+    print("[SYSTEM]: All data present. Reading from database.")
+    data = pd.read_sql_query("SELECT * FROM dataloader;", con, parse_dates=["Timestamp"])
+    con.close()
+    data.set_index(['Timestamp', 'Ticker'], inplace=True)
+    data.sort_index(inplace=True)
 
     return data

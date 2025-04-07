@@ -4,3 +4,4 @@ pandas
 datetime
 timedelta
 tqdm
+Ta-Lib
