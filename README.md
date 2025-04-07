@@ -97,4 +97,4 @@ The grand spitball.
 
 10. Scalability
 - Implement a distributed system (or a system that can be distributed), perhaps via docker containers or k8s to scale horizontally and process more at once
-- Cloud-based solution in future? Could open up some doors for asynchronous jobs and further distributed workloads
+- Cloud-based solution in future? Could open up some doors for asynchronous jobs and further distributed workloadsx
