@@ -41,10 +41,10 @@ Economic Theory: Enough Time In The Market Will Let The Bot Time The Market
 
 Ideas
 1. SQLite database. Pivot to DuckDB if I implement some sort of ML or if speed becomes an issue
-2a. Create a script to pre-load and pre-process OHLVC data (from yfinance, for now) into the DB using an API with data integrity validation
-2b. Create a script to act as an in-memory analysis engine which pulls from the DB, computes rolling indicators, scores each stock, and returns a time-series based DataFrame with analysis columns. Wrap Pandas DataFrames in a custom class with related methods for calculations?
-3. Create a script to wrap the algorithm and utilities in an easy-to-use API (one stock per thread, perhaps, done with multiprocessing parallelism)
-4. Create a script to handle backtesting and "live" trading via the above API
+2. Create a script to pre-load and pre-process OHLVC data (from yfinance, for now) into the DB using an API with data integrity validation
+3. Create a script to act as an in-memory analysis engine which pulls from the DB, computes rolling indicators, scores each stock, and returns a time-series based DataFrame with analysis columns. Wrap Pandas DataFrames in a custom class with related methods for calculations?
+4. Create a script to wrap the algorithm and utilities in an easy-to-use API (one stock per thread, perhaps, done with multiprocessing parallelism)
+5. Create a script to handle backtesting and "live" trading via the above API
 
 
 ### Optimization Methods
