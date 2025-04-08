@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from tradingbot.utils import get_tickers_from_file
 from tradingbot.dataloader import bootstrap_dataloader
-from tradingbot.indicators import generate_indicator_dict
+from tradingbot.backtest import backtest
 
 def main():
     # get tickers from a file
@@ -18,8 +18,8 @@ def main():
     # returns multindex dataframe
     data = bootstrap_dataloader(tickers, start_date, end_date)
 
-    # returns nested dict of form {ticker{indicator:value}...}
-    indicators = generate_indicator_dict(tickers, data)
+    # enter backtest loop and start scoring stocks here
+    backtest(tickers, data)
 
 if __name__ == '__main__':
     main()
