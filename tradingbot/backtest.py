@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import pandas as pd
+#import matplotlib.pyplot as plt
 from tqdm import tqdm
 from tradingbot.scoring import generate_trade_signal
 from tradingbot.indicators import calculate_all_indicators
@@ -17,14 +18,13 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     with tqdm(total=len(data.index),desc="[SYSTEM]: Running backtest", unit=" datapoint") as pbar:
         for timestamp, ticker in data.index:
             
-
-            ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp]
-
-            if looper <= 20:
+            # ensure we have enough datapoints to do calculations
+            if looper <= 50:
                 looper += 1
                 continue
 
-    #        print(ticker_data)
+            # slice data
+            ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp]
 
             # get the latest indicators for the stock
             indicators = calculate_all_indicators(ticker, ticker_data)
@@ -37,7 +37,7 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 position = balance / ticker_data['Close'].iloc[-1]  # ALL IN LET'S GO
                 position_price = ticker_data['Close'].iloc[-1]
                 balance = 0  # no cash left after buying
-                print(f"[{timestamp}]: Bought {ticker} at {position_price}")
+    #            print(f"[{timestamp}]: Bought {ticker} at {position_price}")
             
             # if we have a position, check for sell conditions (take-profit/stop-loss/sell signal)
             elif position is not None:
@@ -45,19 +45,19 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 if ticker_data['Close'].iloc[-1] >= position_price * (1 + take_profit_percent):
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-                    print(f"[{timestamp}]: Sold {ticker} for a profit at {ticker_data['Close'].iloc[-1]}")
+    #                print(f"[{timestamp}]: Sold {ticker} for a profit at {ticker_data['Close'].iloc[-1]}")
                 
                 # check for Stop Loss
                 elif ticker_data['Close'].iloc[-1] <= position_price * (1 - stop_loss_percent):
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-                    print(f"[{timestamp}]: Sold {ticker} for a loss at {ticker_data['Close'].iloc[-1]}")
+    #                print(f"[{timestamp}]: Sold {ticker} for a loss at {ticker_data['Close'].iloc[-1]}")
                 
                 # if we get a "SELL" signal, close the position
                 elif signal == "SELL":
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-                    print(f"[{timestamp}]: Sold {ticker} based on signal at {ticker_data['Close'].iloc[-1]}")
+    #                print(f"[{timestamp}]: Sold {ticker} based on signal at {ticker_data['Close'].iloc[-1]}")
 
             # track portfolio value
             portfolio_history.append({
@@ -67,6 +67,8 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 'portfolio_value': balance if position is None else position * ticker_data['Close'].iloc[-1]
             })
 
+    #        print(f"[{timestamp}]: {portfolio_history[len(portfolio_history) - 1].get('portfolio_value')}")
+
             pbar.update(1)
 
     # at the end of the backtest, liquidate any open positions
@@ -75,9 +77,13 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
         print(f"[SYSTEM]: End of backtest: Sold remaining position at {ticker_data['Close'].iloc[-1]}")
     
     # generate final portfolio report
-    portfolio_history_df = pd.DataFrame(portfolio_history)
-    portfolio_history_df.set_index('timestamp', inplace=True)
-    portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
+#    portfolio_history_df = pd.DataFrame(portfolio_history)
+#    portfolio_history_df.set_index('timestamp', inplace=True)
+#    portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
+
+#    filename=f"portfolio-plot-1y.png"
+#    plt.savefig(filename)
+#    plt.close()
 
     final_value = portfolio_history_df['portfolio_value'].iloc[-1]
     print(f"Final Portfolio Value: {final_value}")
