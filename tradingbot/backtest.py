@@ -114,3 +114,5 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     final_value = portfolio_history_df['portfolio_value'].iloc[-1]
     print(f"FINAL PORTFOLIO VALUE: ${final_value:,.2f}")
     print(f"TOTAL RETURN: {(final_value - initial_balance) / initial_balance * 100:.2f}%")
+
+    return final_value
