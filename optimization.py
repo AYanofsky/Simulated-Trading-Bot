@@ -37,7 +37,7 @@ def objective(params):
     return -performance  # assuming higher performance is better
 
 # perform Bayesian Optimization
-result = gp_minimize(objective, search_space, n_calls=50, random_state=42)
+result = gp_minimize(objective, search_space, n_calls=50, random_state=2, n_jobs=-1)
 
 # print the best parameters and the corresponding performance
 print(f"Best parameters: {result.x}")
