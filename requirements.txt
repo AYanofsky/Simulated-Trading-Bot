@@ -1,3 +1,7 @@
 yfinance
-requests
+sqlite3
+pandas
 datetime
+timedelta
+tqdm
+Ta-Lib

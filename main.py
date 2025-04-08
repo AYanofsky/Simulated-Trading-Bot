@@ -1,46 +1,25 @@
 #!/usr/bin/env python
 
-import argparse
-from tradingbot.utils import get_tickers
-from tradingbot.backtesting import backtest_multiple_tickers
-from tradingbot.optimizer import start_optimizer
+from datetime import datetime, timedelta
+from tradingbot.utils import get_tickers_from_file
+from tradingbot.dataloader import bootstrap_dataloader
+from tradingbot.backtest import backtest
 
-# main handler function
-def main(is_backtest=False, is_optimize=False, period="1y", interval="1h", breakout_up_threshold=1.05, breakout_down_threshold=0.97, 
-         stop_loss_percent=0.05, take_profit_percent=0.2):
-    tickers = ["PFE"]
+def main():
+    # get tickers from a file
+    tickers = get_tickers_from_file()
 
-    if is_backtest:
-        print("Running backtest...")
-        backtest_multiple_tickers(tickers,period,interval,breakout_up_threshold,breakout_down_threshold,stop_loss_percent,take_profit_percent)
-    elif is_optimize:
-        print("Running optimization...")
-        start_optimizer(tickers)
-    else:
-        # implement "live" trading logic here
-        pass
+    # get dates. this will be a variable that can be changed later
+    end_date = datetime.today()
+    start_date = end_date - timedelta(days=365)
+    end_date = end_date.isoformat()
+    start_date = start_date.isoformat()
+    
+    # returns multindex dataframe
+    data = bootstrap_dataloader(tickers, start_date, end_date)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Trading Bot")
+    # enter backtest loop and start scoring stocks here
+    backtest(tickers, data)
 
-    parser.add_argument("--optimize", action="store_true", help="run optimizations instead of live mode.")
-    parser.add_argument("--backtest", action="store_true", help="run backtest instead of live mode.")
-    parser.add_argument("--period", type=str, default="1y", help="historical data period for backtest (e.g., '1y', '6mo').")
-    parser.add_argument("--interval", type=str, default="1h", help="interval for historical data (e.g., '1h', '1d').")
-    parser.add_argument("--breakout_up", type=float, default=1.02, help="breakout threshold for going long.")
-    parser.add_argument("--breakout_down", type=float, default=0.98, help="breakdown threshold for going short.")
-    parser.add_argument("--stop_loss", type=float, default=0.04, help="stop-loss percentage.")
-    parser.add_argument("--take_profit", type=float, default=0.15, help="take-profit percentage.")
-
-    args = parser.parse_args()
-
-    main(
-        is_backtest=args.backtest, 
-        is_optimize=args.optimize,
-        period=args.period, 
-        interval=args.interval,
-        breakout_up_threshold=args.breakout_up, 
-        breakout_down_threshold=args.breakout_down, 
-        stop_loss_percent=args.stop_loss, 
-        take_profit_percent=args.take_profit
-    )
+if __name__ == '__main__':
+    main()
