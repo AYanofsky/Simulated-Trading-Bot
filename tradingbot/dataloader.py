@@ -26,8 +26,8 @@ def get_trading_hours(start,end):
 
 # function to fetch all data for given list of tickers
 def fetch_data(tickers):
-    print("[SYSTEM]: Fetching data.")
-    data = yf.download(tickers, period='1y', interval='1h', group_by='ticker', auto_adjust=True, progress=False)
+    print("[SYSTEM]: FETCHING DATA.")
+    data = yf.download(tickers, period='1y', interval='1h', group_by='ticker', auto_adjust=True)
     return data
 
 # function to insert data into database
@@ -99,13 +99,13 @@ def preprocessor(ticker, data, expected_timestamps):
         return data
 
     except Exception as ex:
-        print(f"[{ticker:<4}]: Error during preprocessing. {ex}")
+        print(f"[{ticker:<4}]: ERROR DURING PREPROCESSING. {ex}")
         return None
 
 def dataloader(tickers, expected_timestamps):
     data = fetch_data(tickers)
 
-    with tqdm(total=len(tickers), desc="[SYSTEM]: Inserting data",unit=" ticker") as pbar:
+    with tqdm(total=len(tickers), desc="[SYSTEM]: INSERTING DATA",unit=" ticker") as pbar:
         # preprocess data for each ticker
         for ticker in tickers:
             # for every ticker's data in the list, run the preprocessor on it
@@ -120,7 +120,7 @@ def dataloader(tickers, expected_timestamps):
         #            print(f"[{ticker:<4}]: Failed to preprocess data.")
         # return data, where data is a multi-index dataframe
             pbar.update(1)
-    print(f"[SYSTEM]: All data loaded.")
+    print(f"[SYSTEM]: ALL DATA LOADED.")
     return data
 
 def bootstrap_dataloader(tickers, start_date, end_date):
@@ -155,13 +155,13 @@ def bootstrap_dataloader(tickers, start_date, end_date):
             count = cur.fetchone()[0]
             if count < len(expected_timestamps):
                 all_data_present = False
-                print(f"[SYSTEM]: {ticker:<4}: {count}/{len(expected_timestamps)}")
-                # we can break here because we don't care how many dates are 
+                print(f"[SYSTEM]: DATA MISSING FROM {ticker:<4}: {len(expected_timestamps)} DATAPOINTS EXPECTED BUT ONLY {count} IN DATABASE")
+                # we can break here because we don't care if other people have data 
                 break
 
     # if the table doesn't exist or we don't have all our data, rebuild
     if not table_exists or not all_data_present:
-        print("[SYSTEM]: Missing or incomplete data. Rebuilding table.")
+        print("[SYSTEM]: MISSING OR INCOMPLETE DATA. REBUILDING TABLE.")
         cur.execute("DROP TABLE IF EXISTS dataloader;")
         cur.execute("""
         CREATE TABLE dataloader (
@@ -178,7 +178,7 @@ def bootstrap_dataloader(tickers, start_date, end_date):
         # download, preprocess, insert
         data = dataloader(tickers, expected_timestamps)
 
-    print("[SYSTEM]: All data present. Reading from database.")
+    print("[SYSTEM]: ALL DATA PRESENT. READING FROM DATABASE.")
     data = pd.read_sql_query("SELECT * FROM dataloader;", con, parse_dates=["Timestamp"])
     con.close()
     data.set_index(['Timestamp', 'Ticker'], inplace=True)

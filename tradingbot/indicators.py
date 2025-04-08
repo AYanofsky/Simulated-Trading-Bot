@@ -64,16 +64,3 @@ def calculate_latest_indicators(data):
     indicators['atr'] = tr.rolling(window=14).mean().iloc[-1]
 
     return indicators
-
-
-def generate_indicator_dict(tickers, data):
-    indicator_dict = {}
-
-    with tqdm(total=len(tickers), desc="[SYSTEM]: Calculating indicators", unit=" ticker") as pbar:
-        for ticker in tickers:
-            ticker_data = data.xs(ticker, level='Ticker')
-            indicators = calculate_latest_indicators(ticker_data)
-            indicator_dict[ticker] = indicators
-            pbar.update(1)
-
-    return indicator_dict

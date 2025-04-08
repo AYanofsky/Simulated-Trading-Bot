@@ -2,6 +2,10 @@
 
 import pandas as pd
 
+# Store the last trade timestamp globally
+last_trade_timestamp = None
+cooldown_period = 50  # Cooldown period (in data points, e.g., 50 periods)
+
 def evaluate_buy_signal(indicators):
     buy_score = 0
 
@@ -50,28 +54,24 @@ def evaluate_sell_signal(indicators):
     return sell_score
 
 
-def generate_trade_signal(indicators, buy_threshold=3, sell_threshold=3):
+def generate_trade_signal(indicators, buy_threshold=3, sell_threshold=3, current_timestamp=None):
+    global last_trade_timestamp
+
+    # check if down period has passed since last trade
+    if last_trade_timestamp is not None and current_timestamp - last_trade_timestamp < cooldown_period:
+        return "HOLD"  # prevent trade if cooldown period is not over
+
     buy_score = evaluate_buy_signal(indicators)
     sell_score = evaluate_sell_signal(indicators)
 
-    # Buy if score reaches threshold
+    # buy if score reaches threshold
     if buy_score >= buy_threshold:
+        last_trade_timestamp = current_timestamp
         return "BUY"
-    # Sell if score reaches threshold
+    # sell if score reaches threshold
     elif sell_score >= sell_threshold:
+        last_trade_timestamp = current_timestamp 
         return "SELL"
-    # Else, Hold
+    # else, Hold
     else:
         return "HOLD"
-
-
-def calculate_trade_confidence(indicators):
-    buy_score = evaluate_buy_signal(indicators)
-    sell_score = evaluate_sell_signal(indicators)
-
-    if buy_score >= 3:
-        return "BUY", buy_score
-    elif sell_score >= 3:
-        return "SELL", sell_score
-    else:
-        return "HOLD", max(buy_score, sell_score)
