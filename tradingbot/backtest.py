@@ -114,14 +114,3 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     final_value = portfolio_history_df['portfolio_value'].iloc[-1]
     print(f"FINAL PORTFOLIO VALUE: ${final_value:,.2f}")
     print(f"TOTAL RETURN: {(final_value - initial_balance) / initial_balance * 100:.2f}%")
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(portfolio_history_df.index, portfolio_history_df['portfolio_value'], label="Portfolio Value", color='green')
-    plt.title("Portfolio Value Over Time", fontsize=16)
-    plt.xlabel('Timestamp', fontsize=12)
-    plt.ylabel('Portfolio Value ($)', fontsize=12)
-    plt.grid(True)
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("portfolio-value.png")
