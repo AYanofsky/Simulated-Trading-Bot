@@ -2,10 +2,9 @@
 
 from datetime import datetime
 import pandas as pd
-#import matplotlib.pyplot as plt
 from tqdm import tqdm
 from tradingbot.scoring import generate_trade_signal
-from tradingbot.indicators import calculate_all_indicators
+from tradingbot.indicators import calculate_latest_indicators
 
 def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_profit_percent=0.05):
     balance = initial_balance
@@ -13,21 +12,24 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     position_price = 0
     portfolio_history = []
 
+    # Precompute indicators for all data once, reducing redundancy in calculations
+    indicators_cache = {}
 
     looper = 0
-    with tqdm(total=len(data.index),desc="[SYSTEM]: Running backtest", unit=" datapoint") as pbar:
+    with tqdm(total=len(data.index), desc="[SYSTEM]: Running backtest", unit=" datapoint") as pbar:
         for timestamp, ticker in data.index:
-            
-            # ensure we have enough datapoints to do calculations
+            # Ensure we have enough datapoints to do calculations
             if looper <= 50:
                 looper += 1
                 continue
 
-            # slice data
-            ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp].tail(50)
+            # Check if the indicators for this ticker and timestamp are already cached
+            if (ticker, timestamp) not in indicators_cache:
+                ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp].tail(50)
+                indicators_cache[(ticker, timestamp)] = calculate_latest_indicators(ticker_data)
 
-            # get the latest indicators for the stock
-            indicators = calculate_all_indicators(ticker, ticker_data)
+            # Retrieve the latest indicators for this ticker and timestamp
+            indicators = indicators_cache[(ticker, timestamp)]
 
             # get the trade signal
             signal = generate_trade_signal(indicators)
@@ -37,27 +39,23 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 position = balance / ticker_data['Close'].iloc[-1]  # ALL IN LET'S GO
                 position_price = ticker_data['Close'].iloc[-1]
                 balance = 0  # no cash left after buying
-    #            print(f"[{timestamp}]: Bought {ticker} at {position_price}")
             
             # if we have a position, check for sell conditions (take-profit/stop-loss/sell signal)
             elif position is not None:
                 # check for take-profit
-                if ticker_data['Close'].iloc[-1] >= position_price * (1 + take_profit_percent):
+                if ticker_data['Close'].iloc[-1] >= position_price + (take_profit_percent * indicators['atr']):
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-    #                print(f"[{timestamp}]: Sold {ticker} for a profit at {ticker_data['Close'].iloc[-1]}")
                 
                 # check for Stop Loss
-                elif ticker_data['Close'].iloc[-1] <= position_price * (1 - stop_loss_percent):
+                elif ticker_data['Close'].iloc[-1] <= position_price - (stop_loss_percent * indicators['atr']):
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-    #                print(f"[{timestamp}]: Sold {ticker} for a loss at {ticker_data['Close'].iloc[-1]}")
                 
                 # if we get a "SELL" signal, close the position
                 elif signal == "SELL":
                     balance = position * ticker_data['Close'].iloc[-1]
                     position = None
-    #                print(f"[{timestamp}]: Sold {ticker} based on signal at {ticker_data['Close'].iloc[-1]}")
 
             # track portfolio value
             portfolio_history.append({
@@ -66,8 +64,6 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 'position': position,
                 'portfolio_value': balance if position is None else position * ticker_data['Close'].iloc[-1]
             })
-
-    #        print(f"[{timestamp}]: {portfolio_history[len(portfolio_history) - 1].get('portfolio_value')}")
 
             pbar.update(1)
 
@@ -79,11 +75,7 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     # generate final portfolio report
     portfolio_history_df = pd.DataFrame(portfolio_history)
     portfolio_history_df.set_index('timestamp', inplace=True)
-#    portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
-
-#    filename=f"portfolio-plot-1y.png"
-#    plt.savefig(filename)
-#    plt.close()
+    portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
 
     final_value = portfolio_history_df['portfolio_value'].iloc[-1]
     print(f"Final Portfolio Value: {final_value}")

@@ -1,74 +1,79 @@
 #!/usr/bin/env python
 
 import pandas as pd
+import numpy as np
 import talib
 from tqdm import tqdm
 
+def calculate_latest_indicators(data):
+    indicators = {}
 
-def calculate_bollinger_bands(data, window=20):
-    upperband, middleband, lowerband = talib.BBANDS(data['Close'], timeperiod=window)
-    return upperband.iloc[-1], middleband.iloc[-1], lowerband.iloc[-1]
+    # Ensure enough data is available to calculate indicators
+    if len(data) < 50:
+        return indicators  # Not enough data to compute all indicators reliably
 
+    # Extract necessary series from the data
+    close = data['Close']
+    high = data['High']
+    low = data['Low']
+    volume = data['Volume']
 
-def calculate_sma(data, short_window=10, long_window=50):
-    sma_short = data['Close'].rolling(window=short_window).mean()
-    sma_long = data['Close'].rolling(window=long_window).mean()
-    return sma_short.iloc[-1], sma_long.iloc[-1]
+    # Compute rolling statistics once, then reuse
+    close_rolling_20 = close.rolling(window=20)
+    volume_rolling_20 = volume.rolling(window=20)
 
+    # Relative Volume (20)
+    indicators['relative_volume_20'] = volume.iloc[-1] / volume_rolling_20.mean().iloc[-1]
 
-def calculate_macd(data, fastperiod=12, slowperiod=26, signalperiod=9):
-    macd, macdsignal, macdhist = talib.MACD(data['Close'], fastperiod, slowperiod, signalperiod)
-    return macd.iloc[-1], macdsignal.iloc[-1], macdhist.iloc[-1]
+    # Bollinger Bands (20)
+    upperband, middleband, lowerband = talib.BBANDS(close, timeperiod=20)
+    indicators['bb_width_20'] = (upperband.iloc[-1] - lowerband.iloc[-1]) / middleband.iloc[-1]
+    indicators['upperband'] = upperband.iloc[-1]
+    indicators['middleband'] = middleband.iloc[-1]
+    indicators['lowerband'] = lowerband.iloc[-1]
 
+    # Z-score (20)
+    z_mean = close_rolling_20.mean().iloc[-1]
+    z_std = close_rolling_20.std().iloc[-1]
+    indicators['zscore_20'] = (close.iloc[-1] - z_mean) / z_std if z_std != 0 else 0
 
-def calculate_rsi(data, window=14):
-    rsi = talib.RSI(data['Close'], timeperiod=window)
-    return rsi.iloc[-1] if rsi is not None else None
+    # --- CUSTOM RSI (14) ---
+    delta = close.diff().iloc[-14:]
+    gain = delta.where(delta > 0, 0).mean()
+    loss = -delta.where(delta < 0, 0).mean()
 
+    rsi = 100 - (100 / (1 + (gain / loss))) if loss != 0 else 100
+    indicators['rsi_14'] = rsi
 
-def calculate_relative_volume(data, window=20):
-    rel_volume = data['Volume'] / data['Volume'].rolling(window=window).mean()
-    return rel_volume.iloc[-1]
+    # MACD (12, 26, 9)
+    macd, macdsignal, macdhist = talib.MACD(close, fastperiod=12, slowperiod=26, signalperiod=9)
+    indicators['macd'] = macd.iloc[-1]
+    indicators['macd_signal'] = macdsignal.iloc[-1]
+    indicators['macd_hist'] = macdhist.iloc[-1]
 
+    # SMA 10 and 50
+    indicators['sma_10'] = close.iloc[-10:].mean()
+    indicators['sma_50'] = close.iloc[-50:].mean()
 
-def calculate_bollinger_band_width(data, window=20):
-    upperband, middleband, lowerband = talib.BBANDS(data['Close'], timeperiod=window)
-    width = (upperband - lowerband) / middleband
-    return width.iloc[-1]
+    # ATR (14)
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low - close.shift()).abs()
+    ], axis=1).max(axis=1)
+    indicators['atr'] = tr.rolling(window=14).mean().iloc[-1]
 
-
-def calculate_zscore(data, window=20):
-    mean = data['Close'].rolling(window=window).mean()
-    std = data['Close'].rolling(window=window).std()
-    zscore = (data['Close'] - mean) / std
-    return zscore.iloc[-1]
-
-
-def calculate_all_indicators(ticker, ticker_data):
-    indicator_dict = {}
-
-    indicator_dict['relative_volume_20'] = calculate_relative_volume(ticker_data)
-    indicator_dict['bb_width_20'] = calculate_bollinger_band_width(ticker_data)
-    indicator_dict['zscore_20'] = calculate_zscore(ticker_data)
-    indicator_dict['rsi_14'] = calculate_rsi(ticker_data)
-    indicator_dict['macd'], indicator_dict['macd_signal'], indicator_dict['macd_hist'] = calculate_macd(ticker_data)
-    indicator_dict['sma_10'], indicator_dict['sma_50'] = calculate_sma(ticker_data)
-    indicator_dict['upperband'], indicator_dict['middleband'], indicator_dict['lowerband'] = calculate_bollinger_bands(ticker_data)
-
-    return indicator_dict
+    return indicators
 
 
 def generate_indicator_dict(tickers, data):
     indicator_dict = {}
 
-    with tqdm(total=len(tickers),desc="[SYSTEM]: Calculating indicators",unit=" ticker") as pbar:
+    with tqdm(total=len(tickers), desc="[SYSTEM]: Calculating indicators", unit=" ticker") as pbar:
         for ticker in tickers:
-            # slice data for current ticker
             ticker_data = data.xs(ticker, level='Ticker')
-#            print(ticker_data)
-
-            # calculate the indicators for this ticker
-            indicator_dict[ticker] = calculate_all_indicators(ticker, ticker_data)
+            indicators = calculate_latest_indicators(ticker_data)
+            indicator_dict[ticker] = indicators
             pbar.update(1)
 
     return indicator_dict
