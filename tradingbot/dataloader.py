@@ -15,7 +15,7 @@ def get_trading_hours(start,end):
     all_hours = pd.date_range(start=start, end=end, freq='h')
 
     # filter: only include weekdays and business hours (9 am to 4 pm inclusive)
-    trading_hours = all_hours[(all_hours.weekday < 5) & (all_hours.hour >= 9) & (all_hours.hour <= 16)]
+    trading_hours = all_hours[(all_hours.weekday < 5) & (all_hours.hour >= 10) & (all_hours.hour <= 16)]
 
     # remove federal holidays
     cal = USFederalHolidayCalendar()
@@ -73,6 +73,8 @@ def preprocessor(ticker, data, expected_timestamps):
 
         # drop invalid data points (NaN, Infinity, None)
         data.replace([None, float('inf'), -float('inf')], pd.NA, inplace=True)
+        data['Close'] = data['Close'].replace([None, float('inf'), -float('inf'), 0], pd.NA)
+
         data.dropna(how='any', inplace=True)
 
         # make sure the expected_timestamps is in the same format and reindex to the expected range
@@ -126,6 +128,8 @@ def bootstrap_dataloader(tickers, start_date, end_date):
     if isinstance(tickers, str):
         tickers = [tickers]
     
+    tickers.sort()
+
     # ensure database exists
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     con = sq3.connect(DB_PATH)
@@ -151,7 +155,7 @@ def bootstrap_dataloader(tickers, start_date, end_date):
             count = cur.fetchone()[0]
             if count < len(expected_timestamps):
                 all_data_present = False
-                print(f"[{ticker:<4}]: {count}/{len(expected_timestamps)}")
+                print(f"[SYSTEM]: {ticker:<4}: {count}/{len(expected_timestamps)}")
                 # we can break here because we don't care how many dates are 
                 break
 

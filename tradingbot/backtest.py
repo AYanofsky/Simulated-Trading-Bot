@@ -6,7 +6,7 @@ from tqdm import tqdm
 from tradingbot.scoring import generate_trade_signal
 from tradingbot.indicators import calculate_latest_indicators
 
-def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, initial_balance, position, position_price, pbar):
+def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, balance, position, position_price, pbar, commission_percent=0.005, slippage_percent=0.002, max_loss_count=3, cooling_off_period=5):
     ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp].tail(50)
 
     # Check if the indicators for this ticker and timestamp are already cached
@@ -19,51 +19,76 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
     signal = generate_trade_signal(indicators)
 
     # Process trading logic for each tick
-    balance = initial_balance
     position_data = position
-    position_price_data = position_price
     portfolio_history = []
+    consecutive_losses = 0
+
+    # Track whether cooling-off is active
+    if hasattr(process_ticker_data, 'cooling_off_counter'):
+        cooling_off_counter = process_ticker_data.cooling_off_counter
+    else:
+        cooling_off_counter = 0
+
+    if cooling_off_counter > 0:
+        # Cooling-off period: skip trading
+        cooling_off_counter -= 1
+        pbar.set_description(f"[SYSTEM]: Cooling off - {cooling_off_counter} periods remaining.".ljust(40))
+        return portfolio_history, position_data, position_price, balance, cooling_off_counter
 
     if position_data is None and signal == "BUY":
-        position_price_data = ticker_data['Close'].iloc[-1]
-        position_data = balance / position_price_data  # ALL IN LET'S GO
-        balance = 0  # no cash left after buying
-#        pbar.set_description(f"[SYSTEM]: BOUT {ticker:<4}".ljust(40))
+        position_price = ticker_data['Close'].iloc[-1] * (1 + slippage_percent)  # Apply slippage when buying
+        max_shares = int(balance / position_price)  # Maximum number of shares we can grab
+
+        if max_shares > 0:
+            position_data = max_shares
+            balance -= position_data * position_price * (1 + commission_percent)  # Deduct the balance after applying commission
+            pbar.set_description(f"[SYSTEM]: BOUT {ticker:<4}".ljust(40))
+            consecutive_losses = 0  # Reset consecutive losses after a successful trade
 
     elif position_data is not None:
         # Check take-profit/stop-loss/sell conditions
-        if ticker_data['Close'].iloc[-1] >= position_price_data + (take_profit_percent * indicators['atr']):
-            balance = position_data * ticker_data['Close'].iloc[-1]
+        if ticker_data['Close'].iloc[-1] >= position_price + (take_profit_percent * indicators['atr']):
+            balance += position_data * ticker_data['Close'].iloc[-1] * (1 - commission_percent)  # Apply commission on sell
             position_data = None
-#            pbar.set_description(f"[SYSTEM]: SOLD {ticker:<4}".ljust(40))
+            pbar.set_description(f"[SYSTEM]: TAKING PROFIT FOR {ticker:<4}".ljust(40))
+            consecutive_losses = 0  # Reset consecutive losses after taking profit
 
-        elif ticker_data['Close'].iloc[-1] <= position_price_data - (stop_loss_percent * indicators['atr']):
-            balance = position_data * ticker_data['Close'].iloc[-1]
+        elif ticker_data['Close'].iloc[-1] <= position_price - (stop_loss_percent * indicators['atr']):
+            balance += position_data * ticker_data['Close'].iloc[-1] * (1 - commission_percent)  # Apply commission on sell
             position_data = None
-#            pbar.set_description(f"[SYSTEM]: SOLD {ticker:<4}".ljust(40))
+            pbar.set_description(f"[SYSTEM]: STOPPING LOSS FOR {ticker:<4}".ljust(40))
+            consecutive_losses += 1  # Increase consecutive loss counter
+
+            # After a certain number of consecutive losses, enter cooling-off period
+            if consecutive_losses >= max_loss_count:
+                cooling_off_counter = cooling_off_period
+                pbar.set_description(f"[SYSTEM]: Entering cooling-off period after {consecutive_losses} losses.".ljust(40))
 
         elif signal == "SELL":
-            balance = position_data * ticker_data['Close'].iloc[-1]
+            balance += position_data * ticker_data['Close'].iloc[-1] * (1 - commission_percent)  # Apply commission on sell
             position_data = None
-#            pbar.set_description(f"[SYSTEM]: SOLD {ticker:<4}".ljust(40))
+            pbar.set_description(f"[SYSTEM]: SOLD {ticker:<4}".ljust(40))
+
+    else:
+        pbar.set_description(f"[SYSTEM]: HOLDING".ljust(40))
+
+#    pbar.set_description(f"[SYSTEM]: ${int(balance) if position_data is None else int(position_data * ticker_data['Close'].iloc[-1] + balance):,}".ljust(40))
 
     # Track portfolio value
     portfolio_history.append({
         'timestamp': timestamp,
         'balance': balance,
         'position': position_data,
-        'portfolio_value': balance if position_data is None else position_data * ticker_data['Close'].iloc[-1]
+        'portfolio_value': balance if position_data is None else position_data * ticker_data['Close'].iloc[-1] + balance
     })
 
-    return portfolio_history, position_data, position_price_data
+    return portfolio_history, position_data, position_price, balance, cooling_off_counter
 
-def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_profit_percent=0.05):
+def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_profit_percent=0.05, commission_percent=0.005, slippage_percent=0.002, max_loss_count=3, cooling_off_period=5):
     balance = initial_balance
     position = None
     position_price = 0
     portfolio_history = []
-
-    # Precompute indicators for all data once, reducing redundancy in calculations
     indicators_cache = {}
 
     with tqdm(total=len(data.index), desc="Running backtest", unit=" datapoint") as pbar:
@@ -72,18 +97,17 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 continue
 
             # Process each ticker data for each timestamp
-            result, position, position_price = process_ticker_data(
-                timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, initial_balance, position, position_price, pbar
+            result, position, position_price, balance, cooling_off_counter = process_ticker_data(
+                timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, balance, position, position_price, pbar, commission_percent, slippage_percent, max_loss_count, cooling_off_period
             )
 
             # Append results to global portfolio history
             portfolio_history.extend(result)
-            pbar.set_description(f"[SYSTEM]: ${portfolio_history[-1].get('balance'):,.2f}")
             pbar.update(1)  # Update progress bar
 
     # At the end of the backtest, liquidate any open positions
     if position is not None:
-        balance = position * data['Close'].iloc[-1]  # Final balance after selling position
+        balance += position * data['Close'].iloc[-1] * (1 - commission_percent)  # Final balance after selling position with commission
         print(f"[SYSTEM]: End of backtest: Sold remaining position at {data['Close'].iloc[-1]}")
 
     # Generate final portfolio report
