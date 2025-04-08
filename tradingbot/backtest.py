@@ -24,7 +24,7 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
                 continue
 
             # slice data
-            ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp]
+            ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp].tail(50)
 
             # get the latest indicators for the stock
             indicators = calculate_all_indicators(ticker, ticker_data)
@@ -77,8 +77,8 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
         print(f"[SYSTEM]: End of backtest: Sold remaining position at {ticker_data['Close'].iloc[-1]}")
     
     # generate final portfolio report
-#    portfolio_history_df = pd.DataFrame(portfolio_history)
-#    portfolio_history_df.set_index('timestamp', inplace=True)
+    portfolio_history_df = pd.DataFrame(portfolio_history)
+    portfolio_history_df.set_index('timestamp', inplace=True)
 #    portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
 
 #    filename=f"portfolio-plot-1y.png"
