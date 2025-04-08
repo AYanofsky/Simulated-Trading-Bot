@@ -151,6 +151,7 @@ def bootstrap_dataloader(tickers, start_date, end_date):
             count = cur.fetchone()[0]
             if count < len(expected_timestamps):
                 all_data_present = False
+                print(f"[{ticker:<4}]: {count}/{len(expected_timestamps)}")
                 # we can break here because we don't care how many dates are 
                 break
 
