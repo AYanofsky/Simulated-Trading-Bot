@@ -2,6 +2,7 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from tqdm import tqdm
 from tradingbot.scoring import generate_trade_signal
 from tradingbot.indicators import calculate_latest_indicators
@@ -48,8 +49,8 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
 
         # set cooling off period after buying
         cooling_off_counter = cooling_off_period
-
-        pbar.set_description(f"[SYSTEM]: {position_data} SHARES OF {ticker}")
+        if max_shares != 0:
+            pbar.set_description(f"[SYSTEM]: {position_data:<3} SHARES OF {ticker:<4}")
 
 
     # selling logic: if position is open and the signal is SELL
@@ -79,7 +80,7 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
     return portfolio_history, position_data, position_price, balance, cooling_off_counter
 
 
-def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_profit_percent=0.05, commission_percent=0.005, slippage_percent=0.002, max_loss_count=3, cooling_off_period=5):
+def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, take_profit_percent=0.0147, commission_percent=0.005, slippage_percent=0.002, max_loss_count=12, cooling_off_period=1):
     balance = initial_balance
     position = None
     position_price = 0
@@ -112,7 +113,24 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.03, take_
     portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
 
     final_value = portfolio_history_df['portfolio_value'].iloc[-1]
-    print(f"FINAL PORTFOLIO VALUE: ${final_value:,.2f}")
-    print(f"TOTAL RETURN: {(final_value - initial_balance) / initial_balance * 100:.2f}%")
 
-    return final_value
+    returns = portfolio_history_df['portfolio_value'].pct_change().dropna()
+
+    if len(returns) == 0:
+        return 0.0, 0.0, 0.0, returns
+
+    avg_return = np.mean(returns)
+    volatility = np.std(returns)
+    sharpe = (avg_return - 0.005) / volatility if volatility > 0 else 0.0
+
+#    print(f"FINAL PORTFOLIO VALUE: ${final_value:,.2f}")
+#    print(f"TOTAL RETURN: {final_value / initial_balance * 100:.2f}%")
+
+    return {
+        'final_value': final_value,
+        'total_return': final_value / initial_balance - 1,
+        'sharpe_ratio': sharpe,
+        'avg_return': avg_return,
+        'volatility': volatility,
+        'returns': returns
+    }
