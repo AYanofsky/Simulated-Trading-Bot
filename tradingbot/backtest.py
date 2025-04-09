@@ -120,7 +120,7 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, tak
     returns = portfolio_history_df['portfolio_value'].pct_change().dropna()
 
     print(f"[SYSTEM]: FINAL VALUE: ${final_value:,.2f}")
-    print(f"[SYSTEM]: PERCENT RETURN: {returns:,.2f}%")
+    print(f"[SYSTEM]: PERCENT RETURN: {final_value / initial_balance:,.2f}%")
 
 
     if len(returns) == 0:
