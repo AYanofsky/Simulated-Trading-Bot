@@ -41,7 +41,7 @@ def objective(params):
     )
     
     # return a negative value because `gp_minimize` minimizes the objective function
-    return -(result['sharpe_ratio'] + 0.5 * result['final_value'] - 0.5 * result('volatility'))
+    return -(result['sharpe_ratio'] + 0.5 * result['final_value'] - 0.5 * result['volatility'])
 
 # perform Bayesian Optimization
 result = gp_minimize(objective, search_space, n_calls=50, random_state=48, n_jobs=-1, verbose=True)
