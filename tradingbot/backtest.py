@@ -8,7 +8,9 @@ from tradingbot.scoring import generate_trade_signal
 from tradingbot.indicators import calculate_latest_indicators, precompute_indicators
 from tradingbot.utils import calculate_position_size
 
-def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, balance, position, position_price, pbar, commission_percent, slippage_percent, max_loss_count, cooling_off_period, cooling_off_counter):
+def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, 
+                        balance, position, position_price, pbar, commission_percent, slippage_percent, 
+                        max_loss_count, cooling_off_period, cooling_off_counter, savings):
     ticker_data = data.xs(ticker, level='Ticker').loc[:timestamp].tail(50)
 
     # check if the indicators for this ticker and timestamp are already cached
@@ -59,32 +61,37 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
         # check take-profit/stop-loss conditions
         atr = indicators['atr']
         if ticker_data['Close'].iloc[-1] >= position_price + (take_profit_percent * atr):
-            balance += position_data * ticker_data['Close'].iloc[-1]
+            balance += position_data * ticker_data['Close'].iloc[-1] * 0.5
+            savings += position_data * ticker_data['Close'].iloc[-1] * 0.5
             position_data = None
 
         elif ticker_data['Close'].iloc[-1] <= position_price - (stop_loss_percent * atr):
-            balance += position_data * ticker_data['Close'].iloc[-1]
+            balance += position_data * ticker_data['Close'].iloc[-1] * 0.5
+            savings += position_data * ticker_data['Close'].iloc[-1] * 0.5
             position_data = None
 
         elif signal == "SELL":
             balance += position_data * ticker_data['Close'].iloc[-1]
+            savings += position_data * ticker_data['Close'].iloc[-1] * 0.5
             position_data = None
 
     # track portfolio value
     portfolio_history.append({
         'timestamp': timestamp,
         'balance': balance,
+        'savings': savings,
         'position': position_data,
-        'portfolio_value': balance if position_data is None else position_data * ticker_data['Close'].iloc[-1] + balance
+        'portfolio_value': balance + savings if position_data is None else position_data * ticker_data['Close'].iloc[-1] + balance + savings
     })
 
-    return portfolio_history, position_data, position_price, balance, cooling_off_counter
+    return portfolio_history, position_data, position_price, balance, savings, cooling_off_counter
 
 
-def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, take_profit_percent=0.0147, commission_percent=0.005, slippage_percent=0.002, max_loss_count=12, cooling_off_period=1):
+def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1356, take_profit_percent=0.1954, commission_percent=0.005, slippage_percent=0.002, max_loss_count=15, cooling_off_period=18):
     balance = initial_balance
     position = None
     position_price = 0
+    savings = 0
     portfolio_history = []
     cooling_off_counter = 0
 
@@ -97,8 +104,22 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, tak
                 continue  # Skip the first 50 data points
 
             # process each ticker data for each timestamp
-            result, position, position_price, balance, cooling_off_counter = process_ticker_data(
-                timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, balance, position, position_price, pbar, commission_percent, slippage_percent, max_loss_count, cooling_off_period, cooling_off_counter
+            result, position, position_price, balance, savings, cooling_off_counter = process_ticker_data(
+                timestamp, 
+                ticker, 
+                data, 
+                indicators_cache, 
+                take_profit_percent, 
+                stop_loss_percent, 
+                balance, position, 
+                position_price, 
+                pbar, 
+                commission_percent, 
+                slippage_percent, 
+                max_loss_count, 
+                cooling_off_period, 
+                cooling_off_counter,
+                savings
             )
 
             # append results to global portfolio history
@@ -114,8 +135,6 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, tak
     portfolio_history_df = pd.DataFrame(portfolio_history)
     portfolio_history_df.set_index('timestamp', inplace=True)
     portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
-
-    final_value = portfolio_history_df['portfolio_value'].iloc[-1]
 
     returns = portfolio_history_df['portfolio_value'].pct_change().dropna()
 
