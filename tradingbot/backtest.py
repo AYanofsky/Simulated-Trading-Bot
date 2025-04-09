@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 from tradingbot.scoring import generate_trade_signal
-from tradingbot.indicators import calculate_latest_indicators
+from tradingbot.indicators import calculate_latest_indicators, precompute_indicators
 from tradingbot.utils import calculate_position_size
 
 def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_percent, stop_loss_percent, balance, position, position_price, pbar, commission_percent, slippage_percent, max_loss_count, cooling_off_period, cooling_off_counter):
@@ -39,9 +39,9 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
 
         # calculate ATR for stop loss distance
         atr = indicators['atr']
-        
-        # calculate position size based on risk management (1% of balance risk per trade)
-        max_shares = calculate_position_size(balance, position_price, atr, risk_percent=0.01)  # 1% risk per trade and max shares of 100
+
+        # calculate position size based on risk management (2% of balance risk per trade)
+        max_shares = calculate_position_size(balance, position_price, stop_loss_percent, risk_percent=0.02)
         
         # update position and balance
         position_data = max_shares
@@ -49,6 +49,7 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
 
         # set cooling off period after buying
         cooling_off_counter = cooling_off_period
+
         if max_shares != 0:
             pbar.set_description(f"[SYSTEM]: {position_data:<3} SHARES OF {ticker:<4}")
 
@@ -85,13 +86,15 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, tak
     position = None
     position_price = 0
     portfolio_history = []
-    indicators_cache = {}
     cooling_off_counter = 0
 
-    with tqdm(total=len(data.index), desc="RUNNING BACKTEST", unit=" datapoint") as pbar:
+    # Precompute all indicators for all tickers
+    indicators_cache = precompute_indicators(data, tickers)
+    
+    with tqdm(total=len(data.index), desc="[SYSTEM]: RUNNING BACKTEST", unit=" datapoint") as pbar:
         for looper, (timestamp, ticker) in enumerate(data.index):
             if looper < 50:
-                continue
+                continue  # Skip the first 50 data points
 
             # process each ticker data for each timestamp
             result, position, position_price, balance, cooling_off_counter = process_ticker_data(
@@ -122,9 +125,6 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1029, tak
     avg_return = np.mean(returns)
     volatility = np.std(returns)
     sharpe = (avg_return - 0.005) / volatility if volatility > 0 else 0.0
-
-#    print(f"FINAL PORTFOLIO VALUE: ${final_value:,.2f}")
-#    print(f"TOTAL RETURN: {final_value / initial_balance * 100:.2f}%")
 
     return {
         'final_value': final_value,
