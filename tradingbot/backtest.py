@@ -29,7 +29,7 @@ def process_ticker_data(timestamp, ticker, data, indicators_cache, take_profit_p
     # cooling off period logic (no trades if cooling off is active)
     if cooling_off_counter > 0:
         cooling_off_counter -= 1
-        return portfolio_history, position_data, position_price, balance, cooling_off_counter
+        return portfolio_history, position_data, position_price, balance, savings, cooling_off_counter
 
     # buying logic: if no position and signal is "BUY"
     if position_data is None and signal == "BUY":
@@ -95,13 +95,15 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1356, tak
     portfolio_history = []
     cooling_off_counter = 0
 
-    # Precompute all indicators for all tickers
+    # precompute all indicators for all tickers
     indicators_cache = precompute_indicators(data, tickers)
     
     with tqdm(total=len(data.index), desc="[SYSTEM]: RUNNING BACKTEST", unit=" datapoint") as pbar:
         for looper, (timestamp, ticker) in enumerate(data.index):
+            # skip first 50 data points
             if looper < 50:
-                continue  # Skip the first 50 data points
+                pbar.update(1)
+                continue
 
             # process each ticker data for each timestamp
             result, position, position_price, balance, savings, cooling_off_counter = process_ticker_data(
@@ -136,17 +138,19 @@ def backtest(tickers, data, initial_balance=10000, stop_loss_percent=0.1356, tak
     portfolio_history_df.set_index('timestamp', inplace=True)
     portfolio_history_df['portfolio_value'].plot(title="Portfolio Value Over Time")
 
+    final_value = portfolio_history_df['portfolio_value'].iloc[-1]
     returns = portfolio_history_df['portfolio_value'].pct_change().dropna()
 
     print(f"[SYSTEM]: FINAL VALUE: ${final_value:,.2f}")
-    print(f"[SYSTEM]: PERCENT RETURN: {final_value / initial_balance:,.2f}%")
+    print(f"[SYSTEM]: FINAL SAVINGS: ${savings:,.2f}")
+    print(f"[SYSTEM]: PERCENT GAINS: {(final_value - initial_balance) / initial_balance * 100 :,.2f}%")
 
 
     if len(returns) == 0:
         return 0.0, 0.0, 0.0, returns
 
     avg_return = np.mean(returns)
-    volatility = np.std(returns)
+    volatility = np.std(returns) / avg_return
     sharpe = (avg_return - 0.005) / volatility if volatility > 0 else 0.0
 
     return {

@@ -44,7 +44,7 @@ def objective(params):
     return -(result['sharpe_ratio'] + 0.5 * result['final_value'] - 0.5 * result['volatility'])
 
 # perform Bayesian Optimization
-result = gp_minimize(objective, search_space, n_calls=50, random_state=48, n_jobs=-1, verbose=True)
+result = gp_minimize(objective, search_space, n_calls=100, random_state=48, n_jobs=-1, verbose=True)
 
 # print the best parameters and the corresponding performance
 print(f"Best parameters: {result.x}")

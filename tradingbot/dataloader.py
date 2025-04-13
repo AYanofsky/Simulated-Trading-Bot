@@ -14,7 +14,7 @@ def get_trading_hours(start,end):
     # generate hourly timestamps
     all_hours = pd.date_range(start=start, end=end, freq='h')
 
-    # filter: only include weekdays and business hours (9 am to 4 pm inclusive)
+    # filter: only include weekdays and business hours (10 am to 4 pm inclusive)
     trading_hours = all_hours[(all_hours.weekday < 5) & (all_hours.hour >= 10) & (all_hours.hour <= 16)]
 
     # remove federal holidays

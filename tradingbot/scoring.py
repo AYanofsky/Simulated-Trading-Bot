@@ -2,30 +2,30 @@
 
 import pandas as pd
 
-# Store the last trade timestamp globally
+# store the last trade timestamp globally
 last_trade_timestamp = None
 cooldown_period = 50  # Cooldown period (in data points, e.g., 50 periods)
 
 def evaluate_buy_signal(indicators):
     buy_score = 0
 
-    # RSI condition (buy when RSI is under 30, oversold)
+    # rsi condition (buy when RSI is under 30, oversold)
     if indicators.get('rsi_14', 0) < 30:
         buy_score += 1
 
-    # Moving Average condition (short-term average above long-term average)
+    # moving average condition (short-term average above long-term average)
     if indicators.get('sma_10', 0) > indicators.get('sma_50', 0):
         buy_score += 1
 
-    # Bollinger Bands condition (price near lower band, possible rebound)
+    # bollinger bands condition (price near lower band, possible rebound)
     if indicators.get('bb_width_20', 0) > 0.2 and indicators.get('zscore_20', 0) < -1:
         buy_score += 1
 
-    # MACD condition (MACD crossing above signal line)
+    # macd condition (macd crossing above signal line)
     if indicators.get('macd', 0) > indicators.get('macd_signal', 0):
         buy_score += 1
 
-    # Relative Volume condition (higher volume than average)
+    # relative volume condition (higher volume than average)
     if indicators.get('relative_volume_20', 0) > 1.5:
         buy_score += 1
 
@@ -35,19 +35,19 @@ def evaluate_buy_signal(indicators):
 def evaluate_sell_signal(indicators):
     sell_score = 0
 
-    # RSI condition (sell when RSI is above 70, overbought)
+    # rsi condition (sell when rsi is above 70, overbought)
     if indicators.get('rsi_14', 0) > 70:
         sell_score += 1
 
-    # Moving Average condition (short-term average below long-term average)
+    # moving average condition (short-term average below long-term average)
     if indicators.get('sma_10', 0) < indicators.get('sma_50', 0):
         sell_score += 1
 
-    # Bollinger Bands condition (price near upper band, possible reversal)
+    # bollinger bands condition (price near upper band, possible reversal)
     if indicators.get('bb_width_20', 0) > 0.2 and indicators.get('zscore_20', 0) > 1:
         sell_score += 1
 
-    # MACD condition (MACD crossing below signal line)
+    # macd condition (macd crossing below signal line)
     if indicators.get('macd', 0) < indicators.get('macd_signal', 0):
         sell_score += 1
 
